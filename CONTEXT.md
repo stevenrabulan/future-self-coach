@@ -1,0 +1,73 @@
+# Future-Self Coach
+
+A small demo project a conversational
+voice agent that speaks in the user's cloned voice and advises as a *future
+version of the user*, to enforce long-term thinking, decision-making and
+goal-setting.
+
+## Language
+
+**Future Self Coach**:
+The ElevenLabs voice agent the user talks to. It speaks in the user's cloned
+voice and advises from the persona of a future version of the user.
+_Avoid_: "the bot", "the assistant"
+
+**Voice Clone**:
+An Instant Voice Clone (IVC) of the user's own voice, created from ~1 min of
+clean recording, identified by a `voice_id` used everywhere in the API.
+_Avoid_: "the voice", "audio sample", "character"
+
+**Coach Persona**:
+The system-prompt framing that makes the coach *behave* as the user's future
+self (compassionate but demanding, ~3-5 years ahead). It drives each Check-in
+through the Coaching Flow in a coaching *relationship*, not a Q&A — it sells the
+client on the action step and enrolls them. The mechanism, not just the voice.
+_Avoid_: "the prompt", "personality", "tone"
+
+**Coaching Flow**:
+The conversational sequence the Future Self Coach runs per Check-in, adapted
+from the user's *6-Step Client Conversation Process* (inspired by Eben Pagan's
+coaching program, which taught it): **1 build rapport → 2 discover what the
+client wants in the next 90 days/year → 3 uncover the "why" behind those goals
+→ 4 surface the biggest challenge/obstacle → 5 offer value and create an "aha"
+→ 6 enroll the client in one action step.** Each Check-in opens with the **Framing
+Questions** and drives to the **Session Goals** — 1 aha moment, 1 moment of
+emotional inspiration, 1 action step (and *sell them on taking it*). The
+conversational **spine is TOWARD → AWAY → ACTION**:
+- **TOWARD** : "What do you want most right now?" then "what happens if you make
+  it happen?"
+- **AWAY** : "What's the consequence if you don't achieve it?" then "what happens
+  if you successfully avoid that?"
+- **ACTION** : "What's your next step? What can you do first? When can you do
+  it — will you agree to do it at [date/time]?"
+_Avoid_: "the script", "the steps", "coaching", "the persona"
+
+**Framing Questions**:
+The opening permission questions the coach asks up front before diving in:
+"OK to ask questions? OK to interrupt to keep us on track? OK to make requests?
+OK to ask you to hold yourself accountable for what you agree to do?"
+_Avoid_: "preface", "preamble", "setup"
+
+**Action Step**:
+The single concrete action the coach *surfaces with the client and enrolls them
+in*, with an agreed date/time for it. This is the deliverable of the ACTION
+phase and the thing carried over to a later Check-in.
+_Avoid_: "Commitment" (imposed), "task", "to-do", "the goal" (broader)
+
+**Check-in**:
+A conversation the user has with the Future Self Coach, and (in later sessions) a
+moment to revisit a prior Action Step. For the demo each Check-in is recorded,
+appended to the Goal Log, and its prior Action Step surfaced at the start of the
+next Check-in; real calendar/reminder scheduling is a stretch goal.
+_Avoid_: "reminder", "follow-up", "session", "deadline"
+
+**Goal Log**:
+The user's current goals, values and deadlines, kept as a small local file and
+fed to the coach so it can reference and hold the user to them. The "long-term
+thinking" only works if the coach sees this.
+_Avoid_: "memory", "history", "notes"
+
+**LLM Brain**:
+The model behind the coach's responses (a GLM-class model hosted on OpenRouter),
+plugged into ElevenLabs' custom-LLM slot.
+_Avoid_: "the AI", "GPT", "the model"
