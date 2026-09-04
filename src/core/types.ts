@@ -49,7 +49,7 @@ export interface ConversationState {
 
 /**
  * What an LLM Brain returns for one coach turn. The real Brain (ticket 02)
- * and the faked Brain both implement this. Canned in ticket 01.
+ * and the faked Brain both implement this.
  */
 export interface LlmResponse {
   message: string;
@@ -70,10 +70,11 @@ export interface BrainInput {
 
 /**
  * The single seam: an LLM Brain produces a coach message for the current
- * state. Coach Core consumes this; nothing else touches an LLM. Sync for
- * ticket 01 (faked Brain); ticket 02 widens it for the hosted real Brain.
+ * state. Coach Core consumes this; nothing else touches an LLM. Async since
+ * ticket 02 (the real Brain calls a hosted API); the faked Brains simply
+ * return resolved promises.
  */
-export type LlmBrain = (input: BrainInput) => LlmResponse;
+export type LlmBrain = (input: BrainInput) => LlmResponse | Promise<LlmResponse>;
 
 /** What Coach Core produces each step. */
 export interface CoachReply {

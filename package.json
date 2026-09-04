@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "checkin": "tsx src/cli/checkin.ts"
+    "checkin": "tsx --env-file-if-exists=.env src/cli/checkin.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

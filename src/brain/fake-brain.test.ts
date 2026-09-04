@@ -18,11 +18,11 @@ function turnsFrom(coach: ReturnType<typeof createCoach>): Turn[] {
 }
 
 describe('faked Brain: Session Goals in prose', () => {
-  it('delivers the aha line with TOWARD question 2', () => {
+  it('delivers the aha line with TOWARD question 2', async () => {
     const coach = createCoach({ brain: fakeBrain, goalLog: emptyGoalLog });
-    coach.open();
-    coach.answer('Yes, go ahead.');
-    coach.answer('I want the demo shipped.');
+    await coach.open();
+    await coach.answer('Yes, go ahead.');
+    await coach.answer('I want the demo shipped.');
 
     const input = inputFor(
       turnsFrom(coach),
@@ -35,13 +35,13 @@ describe('faked Brain: Session Goals in prose', () => {
     expect(reply.message).toContain('What happens if you make it happen?');
   });
 
-  it('delivers the emotional-inspiration line with AWAY question 2', () => {
+  it('delivers the emotional-inspiration line with AWAY question 2', async () => {
     const coach = createCoach({ brain: fakeBrain, goalLog: emptyGoalLog });
-    coach.open();
-    coach.answer('Yes, go ahead.');
-    coach.answer('Ship the demo.');
-    coach.answer('Proof.');
-    coach.answer('It stays an idea.');
+    await coach.open();
+    await coach.answer('Yes, go ahead.');
+    await coach.answer('Ship the demo.');
+    await coach.answer('Proof.');
+    await coach.answer('It stays an idea.');
 
     const input = inputFor(
       turnsFrom(coach),
@@ -54,7 +54,7 @@ describe('faked Brain: Session Goals in prose', () => {
     expect(reply.message).toContain('What happens if you successfully avoid that?');
   });
 
-  it('keeps other turns free of goal prose', () => {
+  it('keeps other turns free of goal prose', async () => {
     const reply = fakeBrain(
       inputFor([], 'TOWARD', 'What do you want most right now?'),
     );
@@ -62,7 +62,7 @@ describe('faked Brain: Session Goals in prose', () => {
     expect(reply.message).not.toContain('a few years out');
   });
 
-  it('sells the Action Step at ENROLL (enrollment, not description)', () => {
+  it('sells the Action Step at ENROLL (enrollment, not description)', async () => {
     const reply = fakeBrain({
       state: { turns: [], phase: 'ENROLL' },
       actionStep: { action: 'Draft the opening', when: '9am' },

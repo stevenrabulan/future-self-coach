@@ -1,6 +1,8 @@
 /**
- * Terminal Check-in loop: runs a full Check-in against the faked LLM
- * (ticket 01). `npm run checkin` — no network, no voice, no UI.
+ * Terminal Check-in loop: runs a full Check-in against the real LLM Brain
+ * (ticket 02: GLM-5.3-flash via OpenRouter) when OPENROUTER_API_KEY is set,
+ * falling back to the faked Brain with a clear notice when it is not.
+ * `npm run checkin` — text-only, no voice, no UI.
  *
  * Reads stdin line-by-line, so it works both interactive (TTY) and piped
  * (scripted demo). On piped EOF mid-flow the coach finishes with the
@@ -8,7 +10,8 @@
  */
 import { createCoach } from '../core/coach.js';
 import { fakeBrain } from '../brain/fake-brain.js';
-import type { CoachReply, GoalLog } from '../core/types.js';
+import { createRealBrain, readApiKeyFromEnv, readModelFromEnv } from '../brain/real-brain.js';
+import type { CoachReply, GoalLog, LlmBrain } from '../core/types.js';
 import { createInterface } from 'node:readline';
 import { stdin } from 'node:process';
 
@@ -27,11 +30,33 @@ function printReply(reply: CoachReply): void {
   );
 }
 
-async function main(): Promise<void> {
-  const coach = createCoach({ brain: fakeBrain, goalLog });
+/** Real Brain if the key is present; faked fallback otherwise. */
+function pickBrain(): { brain: LlmBrain; label: string } {
+  let apiKey: string;
+  try {
+    apiKey = readApiKeyFromEnv();
+  } catch (err: unknown) {
+    // Only an actually-missing key downgrades to the faked Brain (announced
+    // below). Any other failure is real and propagates — never swallowed.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes('OPENROUTER_API_KEY')) throw err;
+    console.warn(
+      'NOTE: OPENROUTER_API_KEY not set — using the faked LLM (canned responses, no network).\n' +
+        '      Put the key in a gitignored .env (see .env.example) and re-run for the real coach.\n',
+    );
+    return { brain: fakeBrain, label: 'faked LLM (no API key)' };
+  }
+  // Built once; the Brain re-reads FUTURE_SELF_COACH_MODEL per call itself.
+  const brain = createRealBrain({ apiKey, goalLog });
+  return { brain, label: `real LLM: ${readModelFromEnv()} via OpenRouter` };
+}
 
-  console.log('=== Future Self Coach — Check-in (faked LLM, ticket 01) ===\n');
-  printReply(coach.open());
+async function main(): Promise<void> {
+  const { brain, label } = pickBrain();
+  const coach = createCoach({ brain, goalLog });
+
+  console.log(`=== Future Self Coach — Check-in (${label}) ===\n`);
+  printReply(await coach.open());
 
   const rl = createInterface({ input: stdin });
   const lines: string[] = [];
@@ -67,7 +92,7 @@ async function main(): Promise<void> {
       const answer = line.trim();
       if (answer === '') continue;
 
-      const reply = coach.answer(answer);
+      const reply = await coach.answer(answer);
       printReply(reply);
 
       if (reply.closed) {

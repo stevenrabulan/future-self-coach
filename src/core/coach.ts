@@ -17,9 +17,9 @@ import type {
 
 export interface Coach {
   /** Start a Check-in: Framing Questions (+ prior Action Step recall). */
-  open(): CoachReply;
+  open(): Promise<CoachReply>;
   /** Feed the client's answer to the current coach message. */
-  answer(text: string): CoachReply;
+  answer(text: string): Promise<CoachReply>;
   /** Current conversation state (for persistence / the Goal Log). */
   state(): ConversationState;
 }
@@ -109,15 +109,16 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
   function coachTurn(
     input: Omit<BrainInput, 'state'>,
     at: Turn['phase'],
-  ): CoachReply {
+  ): Promise<CoachReply> {
     const brainInput: BrainInput = { state: { turns, phase: at }, ...input };
-    const { message } = brain(brainInput);
-    record('coach', message, at);
-    return { message, phase: at, actionStep, closed: at === 'CLOSED' };
+    return Promise.resolve(brain(brainInput)).then(({ message }) => {
+      record('coach', message, at);
+      return { message, phase: at, actionStep, closed: at === 'CLOSED' };
+    });
   }
 
   return {
-    open(): CoachReply {
+    async open(): Promise<CoachReply> {
       if (turns.length > 0) {
         throw new Error('coach.open() called after the Check-in already started');
       }
@@ -129,7 +130,7 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
       return { message: recall + FRAMING_QUESTIONS, phase, closed: false };
     },
 
-    answer(text: string): CoachReply {
+    async answer(text: string): Promise<CoachReply> {
       assertNonBlank(text, 'answer: client message');
       if (turns.length === 0) {
         throw new Error('answer: called before open(); run open() first');

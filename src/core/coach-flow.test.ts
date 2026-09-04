@@ -24,19 +24,19 @@ function scriptedBrain(): LlmBrain {
 const emptyGoalLog: GoalLog = { priorActionSteps: [] };
 
 /** Drive a full Check-in with one answer per flow question. */
-function runFullCheckin(
+async function runFullCheckin(
   coach: ReturnType<typeof createCoach>,
   answers: string[],
-): CoachReply[] {
-  const replies: CoachReply[] = [coach.open()];
-  for (const a of answers) replies.push(coach.answer(a));
+): Promise<CoachReply[]> {
+  const replies: CoachReply[] = [await coach.open()];
+  for (const a of answers) replies.push(await coach.answer(a));
   return replies;
 }
 
 describe('Coach Core: flow spine TOWARD → AWAY → ACTION', () => {
-  it('runs Framing, then TOWARD before AWAY, AWAY before ACTION, in order', () => {
+  it('runs Framing, then TOWARD before AWAY, AWAY before ACTION, in order', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
-    const replies = runFullCheckin(coach, [
+    const replies = await runFullCheckin(coach, [
       'Yes, go ahead.', // consent to Framing
       'Ship the demo.', // TOWARD q1: what do you want most
       'Proof the idea works.', // TOWARD q2: what happens if you make it happen
@@ -63,9 +63,9 @@ describe('Coach Core: flow spine TOWARD → AWAY → ACTION', () => {
     ]);
   });
 
-  it('asks the Framing Questions first and the exact TOWARD/AWAY/ACTION questions after', () => {
+  it('asks the Framing Questions first and the exact TOWARD/AWAY/ACTION questions after', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
-    const replies = runFullCheckin(coach, [
+    const replies = await runFullCheckin(coach, [
       'Yes.',
       'Ship the demo.',
       'Proof.',
@@ -108,7 +108,7 @@ describe('Coach Core: flow spine TOWARD → AWAY → ACTION', () => {
 });
 
 describe('Coach Core: Action Step capture and enrollment', () => {
-  function checkinToAgreement() {
+  async function checkinToAgreement() {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
     const answers = [
       'Yes.',
@@ -120,13 +120,13 @@ describe('Coach Core: Action Step capture and enrollment', () => {
       'Write the opening.',
       'Tomorrow at 9am.',
     ];
-    const replies = [coach.open()];
-    for (const a of answers) replies.push(coach.answer(a));
+    const replies = [await coach.open()];
+    for (const a of answers) replies.push(await coach.answer(a));
     return { coach, replies };
   }
 
-  it('captures an Action Step with an agreed date/time at ACTION', () => {
-    const { replies } = checkinToAgreement();
+  it('captures an Action Step with an agreed date/time at ACTION', async () => {
+    const { replies } = await checkinToAgreement();
     const enroll = replies.at(-1)!;
 
     expect(enroll.phase).toBe('ENROLL');
@@ -138,8 +138,8 @@ describe('Coach Core: Action Step capture and enrollment', () => {
     });
   });
 
-  it('the coach sells and enrolls the client rather than only describing', () => {
-    const { replies } = checkinToAgreement();
+  it('the coach sells and enrolls the client rather than only describing', async () => {
+    const { replies } = await checkinToAgreement();
     const enroll = replies.at(-1)!;
 
     // The canned Brain's ENROLL message re-states the step and asks for the
@@ -148,25 +148,25 @@ describe('Coach Core: Action Step capture and enrollment', () => {
     expect(enroll.message).toContain('Are you in?');
   });
 
-  it('reopens the date/time question when the client declines the sell', () => {
+  it('reopens the date/time question when the client declines the sell', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
-    coach.open();
+    await coach.open();
     for (const a of ['Yes.', 'Ship the demo.', 'Proof.', 'It stays an idea.', 'Another quiet quarter.', 'Write the outline.', 'Draft the opening.', 'Tomorrow at 9am.']) {
-      coach.answer(a);
+      await coach.answer(a);
     }
-    const no = coach.answer('No, I cannot do that day.');
+    const no = await coach.answer('No, I cannot do that day.');
     expect(no.phase).toBe('ACTION');
     expect(no.message).toContain('When can you do it?');
     // A later agreement still closes the Check-in.
-    const retry = coach.answer('Thursday at 2pm.');
+    const retry = await coach.answer('Thursday at 2pm.');
     expect(retry.phase).toBe('ENROLL');
     expect(retry.actionStep).toEqual({ action: 'Draft the opening.', when: '2pm' });
   });
 
-  it('closes the Check-in after the enrollment confirmation', () => {
+  it('closes the Check-in after the enrollment confirmation', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
     let last: CoachReply | undefined;
-    coach.open();
+    await coach.open();
     for (const a of [
       'Yes.',
       'Ship the demo.',
@@ -178,19 +178,19 @@ describe('Coach Core: Action Step capture and enrollment', () => {
       'Tomorrow at 9am.',
       'Agreed.',
     ]) {
-      last = coach.answer(a);
+      last = await coach.answer(a);
     }
     expect(last!.phase).toBe('CLOSED');
     expect(last!.closed).toBe(true);
   });
 
-  it('stays in ACTION and re-asks when the client has not agreed to a date/time', () => {
+  it('stays in ACTION and re-asks when the client has not agreed to a date/time', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
-    coach.open();
+    await coach.open();
     for (const a of ['Yes.', 'Ship the demo.', 'Proof.', 'It stays an idea.', 'Another quiet quarter.', 'Write the outline.', 'Write the opening.']) {
-      coach.answer(a);
+      await coach.answer(a);
     }
-    const dodge = coach.answer('I am not sure when yet.');
+    const dodge = await coach.answer('I am not sure when yet.');
     expect(dodge.phase).toBe('ACTION');
     expect(dodge.actionStep).toBeUndefined();
     expect(dodge.message).toContain('When can you do it?');
@@ -198,7 +198,7 @@ describe('Coach Core: Action Step capture and enrollment', () => {
 });
 
 describe('Coach Core: Goal Log integration', () => {
-  it('surfaces the prior Action Step from the Goal Log at the start', () => {
+  it('surfaces the prior Action Step from the Goal Log at the start', async () => {
     const coach = createCoach({
       brain: scriptedBrain(),
       goalLog: {
@@ -208,17 +208,17 @@ describe('Coach Core: Goal Log integration', () => {
       },
     });
 
-    const reply = coach.open();
+    const reply = await coach.open();
 
     expect(reply.message).toContain('Draft the demo spec');
     expect(reply.message).toContain('2026-09-04 09:00');
   });
 
-  it('records the full conversation in state for the Goal Log append', () => {
+  it('records the full conversation in state for the Goal Log append', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
-    coach.open();
-    coach.answer('Yes.');
-    coach.answer('Ship the demo.');
+    await coach.open();
+    await coach.answer('Yes.');
+    await coach.answer('Ship the demo.');
 
     const state = coach.state();
     expect(state.phase).toBe('TOWARD');

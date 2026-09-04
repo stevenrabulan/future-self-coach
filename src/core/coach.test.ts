@@ -18,11 +18,11 @@ function fakeBrain(messages: string[]): { brain: LlmBrain; calls: () => number }
 const emptyGoalLog: GoalLog = { priorActionSteps: [] };
 
 describe('Coach Core: opening a Check-in', () => {
-  it('opens with the Framing Questions before any flow content', () => {
+  it('opens with the Framing Questions before any flow content', async () => {
     const { brain } = fakeBrain(['should never be used for the opener']);
     const coach = createCoach({ brain, goalLog: emptyGoalLog });
 
-    const reply = coach.open();
+    const reply = await coach.open();
 
     expect(reply.phase).toBe('FRAMING');
     expect(reply.message).toContain('OK to ask questions?');
@@ -34,17 +34,17 @@ describe('Coach Core: opening a Check-in', () => {
     expect(reply.closed).toBe(false);
   });
 
-  it('does not call the LLM Brain for the opening Framing Questions', () => {
+  it('does not call the LLM Brain for the opening Framing Questions', async () => {
     // The Framing Questions are flow-owned text, not generated content.
     const { brain, calls } = fakeBrain(['nope']);
     const coach = createCoach({ brain, goalLog: emptyGoalLog });
 
-    coach.open();
+    await coach.open();
 
     expect(calls()).toBe(0);
   });
 
-  it('surfaces the prior Action Step from the Goal Log at the start', () => {
+  it('surfaces the prior Action Step from the Goal Log at the start', async () => {
     const { brain } = fakeBrain(['let us begin']);
     const goalLog: GoalLog = {
       priorActionSteps: [
@@ -53,7 +53,7 @@ describe('Coach Core: opening a Check-in', () => {
     };
     const coach = createCoach({ brain, goalLog });
 
-    const reply = coach.open();
+    const reply = await coach.open();
 
     expect(reply.message).toContain('Draft the demo spec');
     expect(reply.message).toContain('2026-09-04 09:00');
