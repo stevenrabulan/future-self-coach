@@ -9,19 +9,44 @@
  * questions it can still ask, and the run ends cleanly.
  */
 import { createCoach } from '../core/coach.js';
+import type { Coach } from '../core/coach.js';
 import { fakeBrain } from '../brain/fake-brain.js';
 import { createRealBrain, readApiKeyFromEnv, readModelFromEnv } from '../brain/real-brain.js';
+import { appendCheckin, EMPTY_GOAL_LOG_MARKDOWN, parseGoalLog, recordFromState } from '../log/goal-log.js';
 import type { CoachReply, GoalLog, LlmBrain } from '../core/types.js';
 import { createInterface } from 'node:readline';
 import { stdin } from 'node:process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
-const goalLog: GoalLog = {
-  priorActionSteps: [
-    // Sample history so the recall path shows in the terminal demo.
-    { action: 'Write the future-self-coach spec', when: '2026-09-03 09:00' },
-  ],
-  notes: 'Demo goal: prove the coaching flow end-to-end.',
-};
+/** The local, gitignored Goal Log; the committed sample-goals.md shows the shape. */
+const GOAL_LOG_PATH = 'goals.local.md';
+
+/**
+ * Loads the Goal Log from goals.local.md. Missing file → empty log (first
+ * Check-in); a file that is not a Goal Log fails loudly, never silently
+ * dropped. The log is re-parsed on every append so concurrent edits survive.
+ */
+function loadGoalLog(): GoalLog {
+  if (!existsSync(GOAL_LOG_PATH)) return { priorActionSteps: [] };
+  const markdown = readFileSync(GOAL_LOG_PATH, 'utf8');
+  return parseGoalLog(markdown);
+}
+
+/** Appends the closed Check-in's outcome to the local Goal Log file. */
+function appendToGoalLog(state: ReturnType<Coach['state']>): void {
+  const markdown = existsSync(GOAL_LOG_PATH)
+    ? readFileSync(GOAL_LOG_PATH, 'utf8')
+    : EMPTY_GOAL_LOG_MARKDOWN;
+  // Local time, not UTC: the Check-in's date is the client's calendar date.
+  const now = new Date();
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  const date =
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
+    `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const next = appendCheckin(markdown, recordFromState(state, date));
+  writeFileSync(GOAL_LOG_PATH, next, 'utf8');
+  console.log(`--- Appended to ${GOAL_LOG_PATH} (gitignored) ---`);
+}
 
 function printReply(reply: CoachReply): void {
   console.log(`\nCOACH: ${reply.message}`);
@@ -31,7 +56,7 @@ function printReply(reply: CoachReply): void {
 }
 
 /** Real Brain if the key is present; faked fallback otherwise. */
-function pickBrain(): { brain: LlmBrain; label: string } {
+function pickBrain(goalLog: GoalLog): { brain: LlmBrain; label: string } {
   let apiKey: string;
   try {
     apiKey = readApiKeyFromEnv();
@@ -52,7 +77,8 @@ function pickBrain(): { brain: LlmBrain; label: string } {
 }
 
 async function main(): Promise<void> {
-  const { brain, label } = pickBrain();
+  const goalLog = loadGoalLog();
+  const { brain, label } = pickBrain(goalLog);
   const coach = createCoach({ brain, goalLog });
 
   console.log(`=== Future Self Coach — Check-in (${label}) ===\n`);
@@ -97,6 +123,7 @@ async function main(): Promise<void> {
 
       if (reply.closed) {
         const state = coach.state();
+        appendToGoalLog(state);
         console.log('--- Check-in transcript (Goal Log append shape) ---');
         for (const turn of state.turns) {
           console.log(

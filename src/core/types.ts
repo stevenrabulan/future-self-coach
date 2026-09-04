@@ -8,8 +8,10 @@
  * Action Step, Goal Log, Coach Persona, Session Goals.
  */
 
-/** Flow phases in conversational order. Framing opens every Check-in. */
+/** Flow phases in conversational order. RECALL (when the Goal Log has a
+ * prior Action Step) opens the Check-in; Framing follows. */
 export type FlowPhase =
+  | 'RECALL'
   | 'FRAMING'
   | 'TOWARD'
   | 'AWAY'
@@ -45,6 +47,11 @@ export interface GoalLog {
 export interface ConversationState {
   turns: Turn[];
   phase: FlowPhase;
+  /**
+   * The enrolled Action Step once the Check-in has captured one (from ENROLL
+   * on). This is what the Goal Log append records (ticket 03).
+   */
+  actionStep?: ActionStep;
 }
 
 /**

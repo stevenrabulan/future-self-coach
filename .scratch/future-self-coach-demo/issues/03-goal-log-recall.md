@@ -8,7 +8,13 @@ real personal data. This ticket works with either the faked or real LLM Brain.
 
 **Blocked by:** 01 (Coach Core with faked LLM).
 
-**Status:** ready-for-agent
+**Status:** ready-for-human (implemented 2026-09-04; pending review)
+
+**Implementation note (2026-09-04):** the recall question opens the Check-in
+as its own RECALL phase and the Framing Questions follow once the client
+answers. This resolves ticket 03's "opens by surfacing ... and asking about
+it" against story 6's "open each Check-in with the Framing Questions" in
+favor of recall-first; flag if Framing should stay first instead.
 
 - [ ] Completing a Check-in appends its outcome (including the Action Step and
       agreed date/time) to the Goal Log

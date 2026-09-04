@@ -123,11 +123,19 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
         throw new Error('coach.open() called after the Check-in already started');
       }
       const prior = goalLog.priorActionSteps.at(-1);
-      const recall = prior
-        ? `Last time you agreed to: "${prior.action}" at ${prior.when}. We will come back to it. `
-        : '';
-      record('coach', recall + FRAMING_QUESTIONS, 'FRAMING');
-      return { message: recall + FRAMING_QUESTIONS, phase, closed: false };
+      // Ticket 03: surface the prior Action Step AND ask about it. The
+      // client's answer is the first user turn; Framing follows.
+      if (prior != null) {
+        const recall =
+          `Last time you agreed to: "${prior.action}" at ${prior.when}. ` +
+          `Did you do it?`;
+        record('coach', recall, 'RECALL');
+        phase = 'RECALL';
+        return { message: recall, phase: 'RECALL', closed: false };
+      }
+      const framing = FRAMING_QUESTIONS;
+      record('coach', framing, 'FRAMING');
+      return { message: framing, phase, closed: false };
     },
 
     async answer(text: string): Promise<CoachReply> {
@@ -141,6 +149,15 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
 
       const at = phase;
       record('user', text, at);
+
+      // Ticket 03: the client has answered the recall question. The Brain
+      // acknowledges it in persona, then the fixed Framing Questions open
+      // the flow proper.
+      if (at === 'RECALL') {
+        const ackReply = coachTurn({ question: FRAMING_QUESTIONS }, 'FRAMING');
+        phase = 'FRAMING';
+        return ackReply;
+      }
 
       // Track the client's latest statement of the step itself (ACTION q1/q2).
       if (at === 'ACTION' && (stepIndex - 1) < steps.length && steps[stepIndex - 1]?.phase === 'ACTION' && steps[stepIndex - 1]?.question !== ACTION_QUESTIONS[ACTION_QUESTIONS.length - 1]) {
@@ -195,7 +212,7 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
     },
 
     state(): ConversationState {
-      return { turns, phase };
+      return actionStep == null ? { turns, phase } : { turns, phase, actionStep };
     },
   };
 }
