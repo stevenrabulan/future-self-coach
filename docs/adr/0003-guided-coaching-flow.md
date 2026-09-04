@@ -33,3 +33,12 @@ lock-in.
 Note: attribution is "inspired by Eben Pagan," the flow being from his coaching
 program, not a public source. The user's template (6-step process, Toward/Away/
 Action sub-questions) is the source of truth; this ADR summarizes its spine.
+
+Refinement (2026-09-04, user decision during ticket 01): the Session Goals'
+aha moment and emotional inspiration are pursued in **Brain prose**, not as
+explicit flow steps — the flow spine stays TOWARD → AWAY → ACTION, and the
+Brain (system prompt on GLM-5.3-flash; canned lines in the faked Brain)
+delivers the aha around TOWARD's second question and the emotional weight
+around AWAY's second question. Rationale: the goals are qualities of how the
+coach speaks, not stages of the conversation; explicit steps would bloat the
+spine and over-structure a 9-turn demo conversation.

@@ -38,11 +38,11 @@ Action Step → decline re-asks the date/time → re-agree → CLOSED.
 
 Deferred findings from two-axis code review (standards + spec):
 
-- **Session Goals: aha + inspiration legs not built.** Ticket text names all
-  three Session Goals; only the Action Step leg is implemented. The flow
-  spine has no step that pursues an aha moment or emotional inspiration.
-  Needs a decision: fold into the Brain's prose (ticket 02, prompt-level per
-  ADR 0003) or add explicit flow steps. Flagged rather than silently dropped.
+- **Session Goals: aha + inspiration legs** — RESOLVED 2026-09-04 by user
+  decision: folded into the Brain's prose, not explicit flow steps. The
+  canned Brain models the placement (aha on TOWARD q2, emotional weight on
+  AWAY q2) and `src/brain/fake-brain.test.ts` pins it; ticket 02's real
+  Brain prompt carries the same aims at the same turns.
 - **Goal Log persistence is not in this ticket** (only recall from an
   injected `GoalLog` object; the CLI uses a hardcoded sample). Matches
   ticket 03's scope; noted here so the seam's Goal Log half is not assumed
