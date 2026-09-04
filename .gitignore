@@ -1,0 +1,11 @@
+# Secrets and personal data — never commit
+.env
+.env.*
+*.local
+
+# Real Goal Log (personal goals); the committed sample is sample-goals.md
+goals.local.md
+
+# Dependencies / build
+node_modules/
+dist/
