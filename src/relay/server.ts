@@ -30,6 +30,7 @@ import {
   type CheckinRecord,
 } from '../log/goal-log.js';
 import type { BrainInput, GoalLog, LlmBrain } from '../core/types.js';
+import { createTtsClient, readTtsConfigFromEnv } from '../voice/tts.js';
 
 const DEFAULT_PORT = 8787;
 const HOST = '127.0.0.1';
@@ -105,10 +106,12 @@ export function createRelayHandler(): (req: IncomingMessage, res: ServerResponse
       if (req.method === 'GET' && url.pathname === '/api/health') {
         const probe = pickBrain(emptyGoalLog());
         const hasKey = probe.label.startsWith('real');
+        const voice = readTtsConfigFromEnv() != null ? 'on' : 'off';
         return sendJson(res, 200, {
           ok: true,
           brain: hasKey ? 'real' : 'faked',
           model: hasKey ? readModelFromEnv() : undefined,
+          voice,
         });
       }
       if (req.method === 'GET' && url.pathname === '/api/goal-log') {
@@ -143,6 +146,42 @@ export function createRelayHandler(): (req: IncomingMessage, res: ServerResponse
         // never corrupt the Goal Log.
         appendGoalLogRecord(record as CheckinRecord);
         return sendJson(res, 200, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/speak') {
+        const body = await readJsonBody(req);
+        assertShape(body, 'body', (b) => 'text' in b && typeof (b as { text?: unknown }).text === 'string');
+        const { text } = body as { text: string };
+        if (text.trim() === '') {
+          return sendJson(res, 400, { error: 'request body: text must be a non-empty string' });
+        }
+        const ttsConfig = readTtsConfigFromEnv();
+        if (ttsConfig == null) {
+          return sendJson(res, 503, {
+            error: 'voice is off: set ELEVENLABS_API_KEY and FUTURE_SELF_COACH_VOICE_ID in the gitignored .env',
+          });
+        }
+        try {
+          const audio = await createTtsClient(ttsConfig)(text);
+          // Stream the audio bytes straight through; the key never crosses
+          // to the client because it only exists in the upstream request.
+          res.writeHead(200, { 'content-type': audio.headers.get('content-type') ?? 'audio/mpeg' });
+          const reader = audio.body?.getReader();
+          if (reader == null) {
+            res.end();
+            return;
+          }
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value));
+          }
+          res.end();
+          return;
+        } catch (err: unknown) {
+          // Upstream (ElevenLabs) failure: bad gateway, not a bad request.
+          const message = err instanceof Error ? err.message : String(err);
+          return sendJson(res, 502, { error: message });
+        }
       }
       return sendJson(res, 404, { error: `no route: ${req.method} ${url.pathname}` });
     } catch (err: unknown) {

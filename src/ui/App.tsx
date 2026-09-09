@@ -12,12 +12,21 @@ import type React from 'react';
 import { createCoach } from '../core/coach.js';
 import type { CoachReply, GoalLog } from '../core/types.js';
 import { recordFromState } from '../log/goal-log.js';
-import { fetchGoalLog, fetchHealth, postBrain, postGoalLogAppend, type Health } from './relay-client.js';
+import {
+  fetchGoalLog,
+  fetchHealth,
+  postBrain,
+  postGoalLogAppend,
+  postSpeak,
+  type Health,
+} from './relay-client.js';
 
 interface ChatLine {
   role: 'coach' | 'user' | 'system';
   text: string;
   phase?: string;
+  /** Set on coach lines: the audio object URL for this reply (ticket 05). */
+  audioUrl?: string;
 }
 
 const PHASE_LABEL: Record<string, string> = {
@@ -59,15 +68,61 @@ export default function App(): React.JSX.Element {
   const [closed, setClosed] = useState(false);
   const [phase, setPhase] = useState<string>('starting');
   const [health, setHealth] = useState<Health | undefined>();
+  /** Voice on/off: the relay's ElevenLabs config, plus the local mute. */
+  const [muted, setMuted] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const coachRef = useRef<import('../core/coach.js').Coach | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  /** Single shared audio element: one reply speaks at a time. */
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Latest user interaction; audio autoplay is allowed after it. */
+  const interactedRef = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [lines]);
 
-  function line(role: ChatLine['role'], text: string, phase?: string): void {
-    setLines((prev) => [...prev, { role, text, phase }]);
+  useEffect(() => {
+    const markInteracted = (): void => {
+      interactedRef.current = true;
+    };
+    window.addEventListener('pointerdown', markInteracted, { once: true });
+    window.addEventListener('keydown', markInteracted, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', markInteracted);
+      window.removeEventListener('keydown', markInteracted);
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  function line(role: ChatLine['role'], text: string, phase?: string, audioUrl?: string): void {
+    setLines((prev) => [...prev, { role, text, phase, audioUrl }]);
+  }
+
+  /**
+   * Speaks one coach message through the relay's cloned voice. Best-effort:
+   * voice problems never break the text coaching flow (ticket 05).
+   */
+  async function speakCoachMessage(text: string, interacted: boolean): Promise<string | undefined> {
+    if (muted || !interacted) return undefined;
+    try {
+      const { url } = await postSpeak(text);
+      const audio = audioRef.current ?? new Audio();
+      audioRef.current = audio;
+      audio.pause();
+      audio.src = url;
+      audio.volume = 1;
+      setSpeaking(true);
+      audio.onended = (): void => setSpeaking(false);
+      audio.onerror = (): void => setSpeaking(false);
+      await audio.play().catch(() => {
+        setSpeaking(false);
+      });
+      return url;
+    } catch {
+      setSpeaking(false);
+      return undefined;
+    }
   }
 
   useEffect(() => {
@@ -85,7 +140,10 @@ export default function App(): React.JSX.Element {
         const reply = await coach.open();
         if (cancelled) return;
         setPhase(reply.phase);
-        line('coach', reply.message, reply.phase);
+        // No interaction yet (page just loaded): autoplay policies would
+        // block playback, so the first coach line is text-only.
+        const audioUrl = await speakCoachMessage(reply.message, interactedRef.current);
+        line('coach', reply.message, reply.phase, audioUrl);
       } catch (err: unknown) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -94,6 +152,7 @@ export default function App(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function send(): Promise<void> {
@@ -107,7 +166,9 @@ export default function App(): React.JSX.Element {
     try {
       const reply: CoachReply = await coach.answer(text);
       setPhase(reply.phase);
-      line('coach', reply.message, reply.phase);
+      // After a send the user has interacted, so playback is allowed.
+      const audioUrl = await speakCoachMessage(reply.message, true);
+      line('coach', reply.message, reply.phase, audioUrl);
       if (reply.closed) {
         setClosed(true);
         const state = coach.state();
@@ -136,6 +197,25 @@ export default function App(): React.JSX.Element {
               ? `live brain · ${health.model ?? 'custom model'}`
               : 'faked brain (no API key)'}
         </span>
+        <span className="badge" data-voice={health?.voice ?? 'unknown'}>
+          {health?.voice === 'on'
+            ? `voice ${muted ? 'muted' : speaking ? 'speaking…' : 'on'}`
+            : 'voice off (no ElevenLabs config)'}
+        </span>
+        {health?.voice === 'on' && (
+          <button
+            type="button"
+            className="mute"
+            onClick={() => {
+              setMuted((m) => {
+                if (!m) audioRef.current?.pause();
+                return !m;
+              });
+            }}
+          >
+            {muted ? 'Unmute' : 'Mute'}
+          </button>
+        )}
       </header>
 
       <div className="phasebar">
@@ -151,6 +231,27 @@ export default function App(): React.JSX.Element {
                 <span className="phase-tag">{PHASE_LABEL[l.phase] ?? l.phase}</span>
               )}
               {l.text}
+              {l.audioUrl != null && (
+                <button
+                  type="button"
+                  className="replay"
+                  aria-label="Replay this reply"
+                  onClick={() => {
+                    audioRef.current?.pause();
+                    const audio = audioRef.current ?? new Audio();
+                    audioRef.current = audio;
+                    const url = l.audioUrl;
+                    if (url == null) return;
+                    audio.src = url;
+                    setSpeaking(true);
+                    audio.onended = (): void => setSpeaking(false);
+                    audio.onerror = (): void => setSpeaking(false);
+                    void audio.play().catch(() => setSpeaking(false));
+                  }}
+                >
+                  ▶
+                </button>
+              )}
             </span>
           </div>
         ))}

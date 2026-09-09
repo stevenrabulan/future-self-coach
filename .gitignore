@@ -6,6 +6,14 @@
 # Real Goal Log (personal goals); the committed sample is sample-goals.md
 goals.local.md
 
+# Voice: personal audio and clone identifiers never enter the repo
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.flac
+audio/
+
 # Dependencies / build
 node_modules/
 dist/

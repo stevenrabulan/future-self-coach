@@ -7,6 +7,8 @@ export interface Health {
   ok: boolean;
   brain: 'real' | 'faked';
   model?: string;
+  /** 'on' when the relay has ElevenLabs voice configured (ticket 05). */
+  voice?: 'on' | 'off';
 }
 
 async function parseBody<T>(res: Response): Promise<T> {
@@ -55,4 +57,28 @@ export async function postGoalLogAppend(record: unknown): Promise<void> {
     body: JSON.stringify({ record }),
   });
   await parseBody<{ ok: boolean }>(res);
+}
+
+/**
+ * Asks the relay to speak one coach message through the cloned voice
+ * (ticket 05). Resolves with an object URL for the audio; the caller owns
+ * playing it and revoking it. Keys stay server-side: the browser receives
+ * audio bytes only.
+ */
+export async function postSpeak(text: string): Promise<{ url: string }> {
+  const res = await fetch('/api/speak', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const body: unknown = await res.json().catch(() => null);
+    const message =
+      typeof body === 'object' && body != null && typeof (body as { error?: unknown }).error === 'string'
+        ? (body as { error: string }).error
+        : `relay: HTTP ${res.status}`;
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  return { url: URL.createObjectURL(blob) };
 }
