@@ -25,11 +25,11 @@ describe('Coach Core: opening a Check-in', () => {
     const reply = await coach.open();
 
     expect(reply.phase).toBe('FRAMING');
-    expect(reply.message).toContain('OK to ask questions?');
-    expect(reply.message).toContain('OK to interrupt to keep us on track?');
-    expect(reply.message).toContain('OK to make requests?');
+    expect(reply.message).toContain('1. Ask you questions?');
+    expect(reply.message).toContain('2. Interrupt you to keep us on track?');
+    expect(reply.message).toContain('3. Make requests?');
     expect(reply.message).toContain(
-      'OK to ask you to hold yourself accountable',
+      '4. Ask you to hold yourself accountable',
     );
     expect(reply.closed).toBe(false);
   });

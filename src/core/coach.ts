@@ -2,6 +2,7 @@ import {
   ACTION_QUESTIONS,
   AWAY_QUESTIONS,
   FRAMING_QUESTIONS,
+  FRAMING_REMINDER,
   TOWARD_QUESTIONS,
 } from './flow-text.js';
 import { assertNonBlank } from './types.js';
@@ -79,6 +80,22 @@ const DECLINE_RE =
   /\b(no\b|nope|not now|nah|i can'?t|cannot|can'?t|not ready|not sure)\b/i;
 
 /**
+ * A clear acceptance of the Framing Questions. Only a plain yes counts: an
+ * ambiguous answer is left unrecorded (ticket 07 decision), so the client is
+ * asked again next Check-in rather than held to consent they never gave.
+ * DECLINE_RE is checked first, so "no, not really" never reads as a yes.
+ */
+const ACCEPT_RE =
+  /\b(yes|yeah|yea|yep|yup|sure|ok|okay|of course|absolutely|definitely|sounds good|go ahead|please do|fine by me)\b/i;
+
+/** True only for an unambiguous yes. */
+export function isFramingAcceptance(text: string): boolean {
+  if (typeof text !== 'string' || text.trim() === '') return false;
+  if (DECLINE_RE.test(text)) return false;
+  return ACCEPT_RE.test(text);
+}
+
+/**
  * Coach Core: maps (conversation state + Goal Log + LLM response) → next
  * coach message + current flow phase. Owns the Coaching Flow spine; the LLM
  * Brain writes only the conversational prose for the step Coach Core hands it.
@@ -99,6 +116,13 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
   // Index of the step most recently asked (open() asks steps[0], FRAMING).
   let stepIndex = 1;
   let actionStep: ActionStep | undefined;
+  // Ticket 07: set once the client accepts the Framing Questions here. The
+  // Goal Log append is what makes it survive to the next Check-in.
+  let framingAccepted = false;
+  // The opening permission text: asked on a first Check-in, restated as a
+  // reminder once the Goal Log shows the client already accepted.
+  const framingText =
+    goalLog.framingAcceptedOn == null ? FRAMING_QUESTIONS : FRAMING_REMINDER;
   // The client's latest statement of the step itself, from ACTION q1/q2.
   let latestStepText: string | undefined;
 
@@ -133,9 +157,8 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
         phase = 'RECALL';
         return { message: recall, phase: 'RECALL', closed: false };
       }
-      const framing = FRAMING_QUESTIONS;
-      record('coach', framing, 'FRAMING');
-      return { message: framing, phase, closed: false };
+      record('coach', framingText, 'FRAMING');
+      return { message: framingText, phase, closed: false };
     },
 
     async answer(text: string): Promise<CoachReply> {
@@ -154,9 +177,25 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
       // acknowledges it in persona, then the fixed Framing Questions open
       // the flow proper.
       if (at === 'RECALL') {
-        const ackReply = coachTurn({ question: FRAMING_QUESTIONS }, 'FRAMING');
+        // The framing block is fixed, flow-owned text with real line breaks.
+        // It is NOT handed to the Brain as a flow question: the persona is
+        // told "no lists", and replyCarriesQuestion() normalizes whitespace,
+        // so a model that flattened the numbering onto one line would still
+        // pass the integrity check. The Brain writes only the recall
+        // acknowledgement; Coach Core appends the block verbatim.
+        const ack = await coachTurn({}, 'FRAMING');
         phase = 'FRAMING';
-        return ackReply;
+        const message = `${ack.message}\n\n${framingText}`;
+        // coachTurn recorded the ack alone; replace it with what was shown.
+        turns = [...turns.slice(0, -1), { role: 'coach', text: message, phase: 'FRAMING' }];
+        return { ...ack, message };
+      }
+
+      // Ticket 07: a clear yes to the Framing Questions is the consent worth
+      // remembering. Anything else advances the flow just the same but is
+      // left unrecorded, so the questions come back next Check-in.
+      if (at === 'FRAMING' && isFramingAcceptance(text)) {
+        framingAccepted = true;
       }
 
       // Track the client's latest statement of the step itself (ACTION q1/q2).
@@ -212,7 +251,10 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
     },
 
     state(): ConversationState {
-      return actionStep == null ? { turns, phase } : { turns, phase, actionStep };
+      const base: ConversationState = { turns, phase };
+      if (actionStep != null) base.actionStep = actionStep;
+      if (framingAccepted) base.framingAccepted = true;
+      return base;
     },
   };
 }

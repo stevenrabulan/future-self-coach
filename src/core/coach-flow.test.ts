@@ -87,10 +87,10 @@ describe('Coach Core: flow spine TOWARD → AWAY → ACTION', () => {
         CoachReply,
         CoachReply,
       ];
-    expect(framing.message).toContain('OK to ask questions?');
-    expect(framing.message).toContain('OK to interrupt to keep us on track?');
-    expect(framing.message).toContain('OK to make requests?');
-    expect(framing.message).toContain('OK to ask you to hold yourself accountable');
+    expect(framing.message).toContain('1. Ask you questions?');
+    expect(framing.message).toContain('2. Interrupt you to keep us on track?');
+    expect(framing.message).toContain('3. Make requests?');
+    expect(framing.message).toContain('4. Ask you to hold yourself accountable');
 
     expect(toward1.message).toContain('What do you want most right now?');
     expect(toward2.message).toContain('What happens if you make it happen?');
