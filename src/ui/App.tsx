@@ -208,7 +208,10 @@ export default function App(): React.JSX.Element {
             className="mute"
             onClick={() => {
               setMuted((m) => {
-                if (!m) audioRef.current?.pause();
+                if (!m) {
+                  audioRef.current?.pause();
+                  setSpeaking(false); // pause() does not fire onended
+                }
                 return !m;
               });
             }}

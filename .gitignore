@@ -16,4 +16,4 @@ audio/
 
 # Dependencies / build
 node_modules/
-dist/
+dist/.DS_Store
