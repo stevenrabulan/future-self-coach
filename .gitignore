@@ -16,5 +16,7 @@ audio/
 
 # Dependencies / build
 node_modules/
-dist/.DS_Store
+dist/
+
+# OS metadata
 .DS_Store
