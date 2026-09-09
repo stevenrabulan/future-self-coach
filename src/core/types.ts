@@ -41,6 +41,12 @@ export interface GoalLog {
   priorActionSteps: ActionStep[];
   /** Optional free-form notes on current goals/values/deadlines. */
   notes?: string;
+  /**
+   * When the client accepted the Framing Questions, e.g. "2026-09-01 09:00"
+   * (ticket 07). Absent on a log from before they ever accepted: the coach
+   * asks the questions then, and reminds instead once this is set.
+   */
+  framingAcceptedOn?: string;
 }
 
 /** Conversation state for one Check-in. */
@@ -52,6 +58,12 @@ export interface ConversationState {
    * on). This is what the Goal Log append records (ticket 03).
    */
   actionStep?: ActionStep;
+  /**
+   * True once the client has clearly accepted the Framing Questions in this
+   * Check-in (ticket 07). Absent means they never did — the flow advances
+   * either way, but only an acceptance is written to the Goal Log.
+   */
+  framingAccepted?: boolean;
 }
 
 /**

@@ -101,13 +101,13 @@ describe('Goal Log pipeline: two consecutive Check-ins (recall)', () => {
     const after = await second.answer('Yes, I did it Tuesday morning.');
 
     expect(after.phase).toBe('FRAMING');
-    expect(after.message).toContain('OK to ask questions?');
+    expect(after.message).toContain('1. Ask you questions?');
   });
 
   it('a Check-in without prior steps opens straight into Framing (no RECALL)', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
     const open = await coach.open();
     expect(open.phase).toBe('FRAMING');
-    expect(open.message).toContain('OK to ask questions?');
+    expect(open.message).toContain('1. Ask you questions?');
   });
 });

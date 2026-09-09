@@ -5,6 +5,10 @@ real personal data. The real Goal Log is `goals.local.md` (gitignored): every
 completed Check-in appends one `### Check-in` block, and the next Check-in
 opens by surfacing the most recent Action Step and asking about it.
 
+## Framing
+
+- Accepted: 2026-09-03 09:00
+
 ## Notes
 
 - (Example) Ship the future-self-coach demo.

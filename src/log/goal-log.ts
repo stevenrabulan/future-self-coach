@@ -28,11 +28,19 @@ export interface CheckinRecord {
   consequence: string;
   /** The enrolled Action Step with its agreed date/time. */
   actionStep: ActionStep;
+  /**
+   * True when this Check-in is where the client accepted the Framing
+   * Questions (ticket 07). Appending it writes the `## Framing` section, so
+   * later Check-ins remind instead of asking again.
+   */
+  framingAccepted?: boolean;
 }
 
 const HEADER = '# Goal Log';
 const CHECKIN_HEADING_PREFIX = '### Check-in —';
 const PLACEHOLDER = '(none yet)';
+/** The `## Framing` section's single field (ticket 07). */
+const ACCEPTED_FIELD = 'Accepted';
 
 /** The starting shape of a Goal Log file with nothing recorded yet. */
 export const EMPTY_GOAL_LOG_MARKDOWN =
@@ -77,12 +85,28 @@ export function parseGoalLog(markdown: string): GoalLog {
   const priorActionSteps: ActionStep[] = [];
   const noteLines: string[] = [];
 
-  let section: 'none' | 'notes' | 'checkins' = 'none';
+  let framingAcceptedOn: string | undefined;
+
+  let section: 'none' | 'notes' | 'checkins' | 'framing' = 'none';
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     if (line.startsWith('## ')) {
       const title = line.slice(3).trim();
-      section = title === 'Notes' ? 'notes' : title === 'Check-ins' ? 'checkins' : 'none';
+      section =
+        title === 'Notes' ? 'notes'
+        : title === 'Check-ins' ? 'checkins'
+        : title === 'Framing' ? 'framing'
+        : 'none';
+      continue;
+    }
+    if (section === 'framing') {
+      if (isBlank(line) || stripBullet(line) === PLACEHOLDER) continue;
+      const accepted = fieldValue(line, ACCEPTED_FIELD);
+      // Only the first Accepted line counts: the acceptance date is the
+      // original one, never overwritten by a later Check-in.
+      if (accepted != null && accepted !== PLACEHOLDER && framingAcceptedOn == null) {
+        framingAcceptedOn = accepted;
+      }
       continue;
     }
     if (section === 'notes') {
@@ -120,6 +144,7 @@ export function parseGoalLog(markdown: string): GoalLog {
 
   const goalLog: GoalLog = { priorActionSteps };
   if (noteLines.length > 0) goalLog.notes = noteLines.join('\n');
+  if (framingAcceptedOn != null) goalLog.framingAcceptedOn = framingAcceptedOn;
   return goalLog;
 }
 
@@ -166,7 +191,14 @@ export function recordFromState(
     state.turns.find((t) => t.role === 'user' && t.phase === 'AWAY')?.text,
     'recordFromState: AWAY answer (consequence)',
   );
-  return { date, wantedMost, consequence, actionStep: state.actionStep };
+  const result: CheckinRecord = {
+    date,
+    wantedMost,
+    consequence,
+    actionStep: state.actionStep,
+  };
+  if (state.framingAccepted === true) result.framingAccepted = true;
+  return result;
 }
 
 /** Renders one Check-in block in the file's markdown shape. */
@@ -182,14 +214,44 @@ function renderCheckin(record: CheckinRecord): string {
 }
 
 /**
+ * Inserts the `## Framing` section recording when the client accepted the
+ * Framing Questions (ticket 07). Idempotent: a log that already holds an
+ * acceptance is returned untouched, so the date stays the original one.
+ * The section goes directly after the `# Goal Log` header, above Notes and
+ * Check-ins, since it describes the relationship rather than any one
+ * Check-in.
+ */
+function withFramingAcceptance(markdown: string, date: string): string {
+  if (parseGoalLog(markdown).framingAcceptedOn != null) return markdown;
+  const lines = markdown.split('\n');
+  const headerIndex = lines.findIndex((line) => line.trim() === HEADER);
+  if (headerIndex === -1) {
+    throw new Error(
+      `withFramingAcceptance: no "${HEADER}" header line to insert after`,
+    );
+  }
+  const section = ['', '## Framing', '', `- ${ACCEPTED_FIELD}: ${date}`];
+  return [
+    ...lines.slice(0, headerIndex + 1),
+    ...section,
+    ...lines.slice(headerIndex + 1),
+  ].join('\n');
+}
+
+/**
  * Appends one completed Check-in to the Goal Log markdown, append-only:
  * every existing byte is preserved and the new block goes at the end (so
  * file order stays oldest-first). Trailing whitespace is trimmed only to
- * place the new block cleanly.
+ * place the new block cleanly. A record carrying a Framing acceptance also
+ * adds the `## Framing` section, once.
  */
 export function appendCheckin(markdown: string, record: CheckinRecord): string {
   assertIsGoalLog(markdown, 'appendCheckin');
   assertValidRecord(record, 'appendCheckin');
-  const body = markdown.replace(/\s+$/, '');
+  const withFraming =
+    record.framingAccepted === true
+      ? withFramingAcceptance(markdown, record.date)
+      : markdown;
+  const body = withFraming.replace(/\s+$/, '');
   return `${body}\n\n${renderCheckin(record)}\n`;
 }
