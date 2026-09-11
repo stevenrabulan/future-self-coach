@@ -1,17 +1,26 @@
 /**
- * One-screen chat UI (ticket 04): the Future Self Coach in the browser.
- * Coach Core runs client-side against the relay's Brain; the Goal Log is
- * loaded at Check-in start and appended on close. Keys stay server-side:
- * the UI never touches OpenRouter directly.
+ * One-screen chat UI (ticket 04; redesigned in ticket 08): the Future Self
+ * Coach in the browser. Coach Core runs client-side against the relay's
+ * Brain; the Goal Log is loaded at Check-in start and appended on close.
+ * Keys stay server-side: the UI never touches OpenRouter directly.
  *
- * Phase markers are rendered inline so the Coaching Flow (Framing,
- * TOWARD → AWAY → ACTION, enrollment) is visible in the transcript.
+ * The screen is one of three frames: StartGate (before the Check-in
+ * starts), the main shell (stepper + transcript + composer), or SummaryCard
+ * (once the Check-in closes). Component split and state ownership per ADR
+ * 0004: state stays here, children are presentational.
  */
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { createCoach } from '../core/coach.js';
-import type { CoachReply, GoalLog } from '../core/types.js';
+import type { CoachReply, FlowPhase, GoalLog } from '../core/types.js';
 import { recordFromState } from '../log/goal-log.js';
+import styles from './App.module.css';
+import Composer from './components/Composer.js';
+import PhaseStepper from './components/PhaseStepper.js';
+import StartGate from './components/StartGate.js';
+import StatusMenu from './components/StatusMenu.js';
+import SummaryCard from './components/SummaryCard.js';
+import Transcript, { type ChatLine } from './components/Transcript.js';
 import {
   fetchGoalLog,
   fetchHealth,
@@ -20,24 +29,7 @@ import {
   postSpeak,
   type Health,
 } from './relay-client.js';
-
-interface ChatLine {
-  role: 'coach' | 'user' | 'system';
-  text: string;
-  phase?: string;
-  /** Set on coach lines: the audio object URL for this reply (ticket 05). */
-  audioUrl?: string;
-}
-
-const PHASE_LABEL: Record<string, string> = {
-  RECALL: 'Recall',
-  FRAMING: 'Framing Questions',
-  TOWARD: 'Toward',
-  AWAY: 'Away',
-  ACTION: 'Action Step',
-  ENROLL: 'Enrollment',
-  CLOSED: 'Complete',
-};
+import { currentTheme, setStoredTheme, type Theme } from './theme.js';
 
 /** Local timestamp in the Goal Log's "YYYY-MM-DD HH:mm" shape. */
 function localTimestamp(): string {
@@ -65,119 +57,147 @@ export default function App(): React.JSX.Element {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [closed, setClosed] = useState(false);
-  const [phase, setPhase] = useState<string>('starting');
+  const [finalActionStep, setFinalActionStep] = useState<CoachReply['actionStep']>();
+  /** The Goal Log append that follows a closed Check-in; drives SummaryCard's
+   * confirmation text independently of navigation, which follows `phase`. */
+  const [logStatus, setLogStatus] = useState<'pending' | 'done' | 'error'>('pending');
+  /** undefined until the first coach reply lands; StartGate shows until then. */
+  const [phase, setPhase] = useState<FlowPhase | undefined>();
   const [health, setHealth] = useState<Health | undefined>();
-  /** Voice on/off: the relay's ElevenLabs config, plus the local mute. */
   const [muted, setMuted] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [speakingId, setSpeakingId] = useState<number | null>(null);
+  const [theme, setTheme] = useState<Theme>(() => currentTheme());
+
   const coachRef = useRef<import('../core/coach.js').Coach | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   /** Single shared audio element: one reply speaks at a time. */
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  /** Latest user interaction; audio autoplay is allowed after it. */
-  const interactedRef = useRef(false);
+  const nextLineId = useRef(0);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [lines]);
-
-  useEffect(() => {
-    const markInteracted = (): void => {
-      interactedRef.current = true;
-    };
-    window.addEventListener('pointerdown', markInteracted, { once: true });
-    window.addEventListener('keydown', markInteracted, { once: true });
     return () => {
-      window.removeEventListener('pointerdown', markInteracted);
-      window.removeEventListener('keydown', markInteracted);
       audioRef.current?.pause();
     };
   }, []);
 
-  function line(role: ChatLine['role'], text: string, phase?: string, audioUrl?: string): void {
-    setLines((prev) => [...prev, { role, text, phase, audioUrl }]);
+  function toggleTheme(): void {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    setStoredTheme(next);
+    setTheme(next);
+  }
+
+  function pushLine(role: ChatLine['role'], text: string, phaseAt?: FlowPhase): number {
+    const id = nextLineId.current++;
+    setLines((prev) => [...prev, { id, role, text, phase: phaseAt }]);
+    return id;
+  }
+
+  function attachAudio(id: number, url: string): void {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, audioUrl: url } : l)));
   }
 
   /**
-   * Speaks one coach message through the relay's cloned voice. Best-effort:
-   * voice problems never break the text coaching flow (ticket 05).
+   * Speaks one coach message through the relay's cloned voice, on the
+   * shared audio element, and tracks which line is the one pulsing.
+   * Best-effort: voice problems never break the text coaching flow.
    */
-  async function speakCoachMessage(text: string, interacted: boolean): Promise<string | undefined> {
-    if (muted || !interacted) return undefined;
+  async function speakCoachMessage(id: number, text: string): Promise<void> {
+    if (muted) return;
     try {
       const { url } = await postSpeak(text);
+      attachAudio(id, url);
       const audio = audioRef.current ?? new Audio();
       audioRef.current = audio;
       audio.pause();
       audio.src = url;
       audio.volume = 1;
-      setSpeaking(true);
-      audio.onended = (): void => setSpeaking(false);
-      audio.onerror = (): void => setSpeaking(false);
+      setSpeakingId(id);
+      audio.onended = (): void => setSpeakingId(null);
+      audio.onerror = (): void => setSpeakingId(null);
       await audio.play().catch(() => {
-        setSpeaking(false);
+        setSpeakingId(null);
       });
-      return url;
     } catch {
-      setSpeaking(false);
-      return undefined;
+      setSpeakingId(null);
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    const boot = async (): Promise<void> => {
-      try {
-        const h = await fetchHealth();
-        if (cancelled) return;
-        setHealth(h);
-        const goalLog = isGoalLogShape(await fetchGoalLog());
-        if (cancelled) return;
-        // The Brain call is proxied through the relay; Coach Core stays pure.
-        const coach = createCoach({ brain: postBrain, goalLog });
-        coachRef.current = coach;
-        const reply = await coach.open();
-        if (cancelled) return;
-        setPhase(reply.phase);
-        // No interaction yet (page just loaded): autoplay policies would
-        // block playback, so the first coach line is text-only.
-        const audioUrl = await speakCoachMessage(reply.message, interactedRef.current);
-        line('coach', reply.message, reply.phase, audioUrl);
-      } catch (err: unknown) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      }
-    };
-    void boot();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  function replay(line: ChatLine): void {
+    const url = line.audioUrl;
+    if (url == null) return;
+    audioRef.current?.pause();
+    const audio = audioRef.current ?? new Audio();
+    audioRef.current = audio;
+    audio.src = url;
+    setSpeakingId(line.id);
+    audio.onended = (): void => setSpeakingId(null);
+    audio.onerror = (): void => setSpeakingId(null);
+    void audio.play().catch(() => setSpeakingId(null));
+  }
+
+  /**
+   * Runs once the client clicks "Begin Check-in": a real user gesture, so
+   * audio autoplay is allowed for the coach's opening line (today it is
+   * silently text-only before this click).
+   */
+  async function begin(): Promise<void> {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const [h, goalLogRaw] = await Promise.all([fetchHealth(), fetchGoalLog()]);
+      setHealth(h);
+      const goalLog = isGoalLogShape(goalLogRaw);
+      // The Brain call is proxied through the relay; Coach Core stays pure.
+      const coach = createCoach({ brain: postBrain, goalLog });
+      coachRef.current = coach;
+      const reply = await coach.open();
+      setPhase(reply.phase);
+      const id = pushLine('coach', reply.message, reply.phase);
+      await speakCoachMessage(id, reply.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Appends the closed Check-in to the Goal Log. Fire-and-forget from
+   * send(): navigation to SummaryCard follows `phase` alone, so a failed
+   * append surfaces as an error inside the summary rather than stranding
+   * the client on a half-closed main shell.
+   */
+  async function logCheckIn(state: ReturnType<import('../core/coach.js').Coach['state']>): Promise<void> {
+    setLogStatus('pending');
+    try {
+      // recordFromState (the Goal Log module's own derivation) validates
+      // every field and throws loudly if the Check-in lacks its TOWARD or
+      // AWAY answers — never a silent empty outcome in the log.
+      const record = recordFromState(state, localTimestamp());
+      await postGoalLogAppend(record);
+      setLogStatus('done');
+    } catch (err: unknown) {
+      setLogStatus('error');
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   async function send(): Promise<void> {
     const text = draft.trim();
     const coach = coachRef.current;
-    if (text === '' || coach == null || busy || closed) return;
+    if (text === '' || coach == null || busy || phase === 'CLOSED') return;
     setBusy(true);
     setError(undefined);
     setDraft('');
-    line('user', text);
+    pushLine('user', text, phase);
     try {
       const reply: CoachReply = await coach.answer(text);
       setPhase(reply.phase);
-      // After a send the user has interacted, so playback is allowed.
-      const audioUrl = await speakCoachMessage(reply.message, true);
-      line('coach', reply.message, reply.phase, audioUrl);
+      const id = pushLine('coach', reply.message, reply.phase);
+      await speakCoachMessage(id, reply.message);
       if (reply.closed) {
-        setClosed(true);
         const state = coach.state();
-        // recordFromState (the Goal Log module's own derivation) validates
-        // every field and throws loudly if the Check-in lacks its TOWARD or
-        // AWAY answers — never a silent empty outcome in the log.
-        const record = recordFromState(state, localTimestamp());
-        await postGoalLogAppend(record);
-        line('system', 'Check-in logged to the Goal Log.');
+        setFinalActionStep(state.actionStep);
+        void logCheckIn(state);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -186,101 +206,65 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  function restart(): void {
+    window.location.reload();
+  }
+
+  if (phase == null) {
+    return <StartGate onBegin={() => void begin()} busy={busy} error={error} />;
+  }
+
+  if (phase === 'CLOSED') {
+    return (
+      <SummaryCard actionStep={finalActionStep} logStatus={logStatus} error={error} onRestart={restart} />
+    );
+  }
+
   return (
-    <main className="app">
-      <header className="header">
-        <h1>Future Self Coach</h1>
-        <span className="badge" data-brain={health?.brain ?? 'unknown'}>
-          {health == null
-            ? 'connecting…'
-            : health.brain === 'real'
-              ? `live brain · ${health.model ?? 'custom model'}`
-              : 'faked brain (no API key)'}
-        </span>
-        <span className="badge" data-voice={health?.voice ?? 'unknown'}>
-          {health?.voice === 'on'
-            ? `voice ${muted ? 'muted' : speaking ? 'speaking…' : 'on'}`
-            : 'voice off (no ElevenLabs config)'}
-        </span>
-        {health?.voice === 'on' && (
-          <button
-            type="button"
-            className="mute"
-            onClick={() => {
-              setMuted((m) => {
-                if (!m) {
-                  audioRef.current?.pause();
-                  setSpeaking(false); // pause() does not fire onended
-                }
-                return !m;
-              });
-            }}
-          >
-            {muted ? 'Unmute' : 'Mute'}
-          </button>
-        )}
+    <main className={styles.app}>
+      <header className={styles.header}>
+        <h1 className={styles.wordmark}>Future Self Coach</h1>
+        <StatusMenu
+          health={health}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onRestart={restart}
+          restartDisabled={busy}
+        />
       </header>
 
-      <div className="phasebar">
-        Check-in phase: <strong>{PHASE_LABEL[phase] ?? phase}</strong>
+      <div className={styles.stepperRow}>
+        <PhaseStepper phase={phase} />
       </div>
 
-      <div className="transcript" ref={scrollRef}>
-        {lines.map((l, i) => (
-          <div key={i} className={`line line-${l.role}`}>
-            <span className="who">{l.role === 'coach' ? 'Coach' : l.role === 'user' ? 'You' : ''}</span>
-            <span className="text">
-              {l.phase != null && l.role === 'coach' && (
-                <span className="phase-tag">{PHASE_LABEL[l.phase] ?? l.phase}</span>
-              )}
-              {l.text}
-              {l.audioUrl != null && (
-                <button
-                  type="button"
-                  className="replay"
-                  aria-label="Replay this reply"
-                  onClick={() => {
-                    audioRef.current?.pause();
-                    const audio = audioRef.current ?? new Audio();
-                    audioRef.current = audio;
-                    const url = l.audioUrl;
-                    if (url == null) return;
-                    audio.src = url;
-                    setSpeaking(true);
-                    audio.onended = (): void => setSpeaking(false);
-                    audio.onerror = (): void => setSpeaking(false);
-                    void audio.play().catch(() => setSpeaking(false));
-                  }}
-                >
-                  ▶
-                </button>
-              )}
-            </span>
-          </div>
-        ))}
-        {busy && <div className="line line-system"><span className="text">Coach is thinking…</span></div>}
-      </div>
+      <Transcript lines={lines} busy={busy} speakingId={speakingId} onReplay={replay} />
 
-      {error != null && <div className="error" role="alert">{error}</div>}
+      {error != null && (
+        <div className={styles.error} role="alert">
+          {error}
+        </div>
+      )}
 
-      <form
-        className="composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={closed ? 'Check-in complete. Restart the app for the next one.' : 'Type your answer…'}
-          disabled={busy || closed || coachRef.current == null}
-          aria-label="Message to the coach"
+      <div className={styles.footer}>
+        <Composer
+          draft={draft}
+          onDraftChange={setDraft}
+          onSubmit={() => void send()}
+          disabled={busy || coachRef.current == null}
+          placeholder="Type your answer…"
+          voiceOn={health?.voice === 'on'}
+          muted={muted}
+          onToggleMute={() => {
+            setMuted((m) => {
+              if (!m) {
+                audioRef.current?.pause();
+                setSpeakingId(null); // pause() does not fire onended
+              }
+              return !m;
+            });
+          }}
         />
-        <button type="submit" disabled={busy || closed || draft.trim() === ''}>
-          Send
-        </button>
-      </form>
+      </div>
     </main>
   );
 }
