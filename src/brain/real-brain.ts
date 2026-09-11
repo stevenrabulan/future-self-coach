@@ -112,10 +112,16 @@ function buildMessages(input: BrainInput, goalLog: GoalLog | undefined): ChatMes
 
   if (actionStep != null) {
     system +=
-      `\n\nCurrent phase: ENROLL. You just captured this Action Step and now ` +
-      `you must enroll the client in it — sell them on taking it (enrollment, ` +
-      `not description): action "${actionStep.action}" at ${actionStep.when}. ` +
-      `End by asking them to say yes.`;
+      `\n\nCurrent phase: ENROLL. You just captured this Action Step from the ` +
+      `client's own words: "${actionStep.action}" at ${actionStep.when}. Sell ` +
+      `them on taking it — enrollment, not description — and end by asking ` +
+      `them to say yes.\n\nSeparately, rephrase what they said as a clean, ` +
+      `concise action: a short imperative phrase ("set an alarm"), not a ` +
+      `quote of their words ("I just set the alarm!"). If their words describe ` +
+      `something already done in the moment (e.g. "I just set the alarm") ` +
+      `rather than a future promise, still name the underlying action itself, ` +
+      `not the fact that it already happened. After your spoken reply, on its ` +
+      `own final line with nothing else, write exactly:\nACTION: <the clean phrase>`;
   } else {
     const phaseLine =
       question != null
@@ -204,6 +210,21 @@ function replyCarriesQuestion(reply: string, question: string): boolean {
   return norm(reply).includes(norm(question));
 }
 
+/**
+ * ENROLL only: splits the trailing `ACTION: <phrase>` line the prompt asks
+ * for off of the user-visible sell message. No match (the model omitted or
+ * malformed the line) falls back to the raw reply with no normalized action;
+ * Coach Core then keeps the client's own captured text.
+ */
+function extractAction(raw: string): LlmResponse {
+  const match = raw.match(/\n?ACTION:\s*(.*)\s*$/i);
+  if (match == null) return { message: raw };
+  const action = match[1]?.trim();
+  const message = raw.slice(0, match.index).trim();
+  if (message === '' || action == null || action === '') return { message: raw };
+  return { message, action };
+}
+
 export function createRealBrain(args: CreateRealBrainArgs): (input: BrainInput) => Promise<LlmResponse> {
   if (args.apiKey == null || args.apiKey.trim() === '') {
     throw new Error(
@@ -224,6 +245,11 @@ export function createRealBrain(args: CreateRealBrainArgs): (input: BrainInput) 
     options.model = readModelFromEnv();
     const baseMessages = buildMessages(input, options.goalLog);
     const first = await callOpenRouter(options, baseMessages);
+
+    if (input.actionStep != null) {
+      // ENROLL: no flow question to enforce; split out the normalized action.
+      return extractAction(first);
+    }
 
     const question = input.question;
     if (question == null || replyCarriesQuestion(first, question)) {
