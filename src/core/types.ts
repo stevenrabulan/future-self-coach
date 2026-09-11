@@ -72,6 +72,13 @@ export interface ConversationState {
  */
 export interface LlmResponse {
   message: string;
+  /**
+   * ENROLL only: the Brain's normalized, imperative-phrased reading of the
+   * Action Step ("set an alarm", not the client's raw "I just set the
+   * alarm!"). Coach Core falls back to the raw captured text when a Brain
+   * omits this.
+   */
+  action?: string;
 }
 
 /**

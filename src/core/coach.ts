@@ -135,7 +135,13 @@ export function createCoach({ brain, goalLog }: CreateCoachArgs): Coach {
     at: Turn['phase'],
   ): Promise<CoachReply> {
     const brainInput: BrainInput = { state: { turns, phase: at }, ...input };
-    return Promise.resolve(brain(brainInput)).then(({ message }) => {
+    return Promise.resolve(brain(brainInput)).then(({ message, action }) => {
+      // ENROLL: the Brain reads the client's raw ACTION answer and may
+      // return a normalized phrase ("set an alarm", not "I just set the
+      // alarm!"). Falls back to the raw captured text when it doesn't.
+      if (at === 'ENROLL' && actionStep != null && action != null && action.trim() !== '') {
+        actionStep = { ...actionStep, action: action.trim() };
+      }
       record('coach', message, at);
       return { message, phase: at, actionStep, closed: at === 'CLOSED' };
     });

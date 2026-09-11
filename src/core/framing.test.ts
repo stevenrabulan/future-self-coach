@@ -40,7 +40,7 @@ describe('Framing Questions as an ordered list', () => {
   });
 
   it('ends the reminder with "As we agreed." and asks nothing', () => {
-    expect(FRAMING_REMINDER.startsWith('Hey again, just to remind you, I will:')).toBe(true);
+    expect(FRAMING_REMINDER.startsWith('Just to remind you, I will:')).toBe(true);
     expect(FRAMING_REMINDER.trimEnd().endsWith('As we agreed.')).toBe(true);
     expect(FRAMING_REMINDER).not.toContain('?');
   });

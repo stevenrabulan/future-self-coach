@@ -35,7 +35,7 @@ export const FRAMING_QUESTIONS = `Hey, is it ok if I:\n${numbered(FRAMING_ITEMS,
  * is what this replaces.
  */
 export const FRAMING_REMINDER =
-  `Hey again, just to remind you, I will:\n${numbered(FRAMING_ITEMS, '')}\nAs we agreed.`;
+  `Just to remind you, I will:\n${numbered(FRAMING_ITEMS, '')}\nAs we agreed.`;
 
 export const TOWARD_QUESTIONS = [
   'What do you want most right now?',

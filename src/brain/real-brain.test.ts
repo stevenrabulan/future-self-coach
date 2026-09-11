@@ -211,6 +211,38 @@ describe('real Brain: response contract', () => {
     expect(system).toContain('9am');
     expect(system.toLowerCase()).toContain('enroll');
   });
+
+  it('splits the trailing ACTION: line at ENROLL into a normalized action, off the visible message', async () => {
+    stubFetch(
+      openRouterBody(
+        'Then we are locked in: set an alarm, tonight. Say yes and I will hold you to it.\n\nACTION: set an alarm',
+      ),
+    );
+    const brain = createRealBrain({ apiKey: ENV_KEY });
+
+    const reply = await brain({
+      state: { turns: [], phase: 'ENROLL' },
+      actionStep: { action: 'I just set the alarm!', when: 'Tonight' },
+    });
+
+    expect(reply.message).toBe(
+      'Then we are locked in: set an alarm, tonight. Say yes and I will hold you to it.',
+    );
+    expect(reply.action).toBe('set an alarm');
+  });
+
+  it('falls back to the raw reply with no normalized action when ACTION: is missing at ENROLL', async () => {
+    stubFetch(openRouterBody('We are locked in. Are you in?'));
+    const brain = createRealBrain({ apiKey: ENV_KEY });
+
+    const reply = await brain({
+      state: { turns: [], phase: 'ENROLL' },
+      actionStep: { action: 'Write the opening', when: '9am' },
+    });
+
+    expect(reply.message).toBe('We are locked in. Are you in?');
+    expect(reply.action).toBeUndefined();
+  });
 });
 
 describe('real Brain: fail fast', () => {

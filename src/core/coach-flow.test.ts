@@ -184,6 +184,30 @@ describe('Coach Core: Action Step capture and enrollment', () => {
     expect(last!.closed).toBe(true);
   });
 
+  it("uses the Brain's normalized action over the client's raw ACTION-answer text", async () => {
+    const brain: LlmBrain = ({ state, question, actionStep }: BrainInput) => {
+      if (state.phase === 'ENROLL' && actionStep) {
+        // Mirrors the real Brain: sells the step and returns a clean phrase
+        // for what the client's raw words ("I just set the alarm!") meant.
+        return {
+          message: `Locked in: ${actionStep.action} at ${actionStep.when}. Are you in?`,
+          action: 'set an alarm',
+        };
+      }
+      if (state.phase === 'CLOSED') return { message: '[closed]' };
+      return { message: `[${state.phase}] ${question ?? ''}` };
+    };
+    const coach = createCoach({ brain, goalLog: emptyGoalLog });
+    await coach.open();
+    let enroll;
+    for (const a of ['Yes.', 'Ship the demo.', 'Proof.', 'It stays an idea.', 'Another quiet quarter.', 'The first thing I can do is set an alarm.', 'I just set the alarm!', 'Tonight.']) {
+      enroll = await coach.answer(a);
+    }
+
+    expect(enroll!.phase).toBe('ENROLL');
+    expect(enroll!.actionStep).toEqual({ action: 'set an alarm', when: 'Tonight' });
+  });
+
   it('stays in ACTION and re-asks when the client has not agreed to a date/time', async () => {
     const coach = createCoach({ brain: scriptedBrain(), goalLog: emptyGoalLog });
     await coach.open();
