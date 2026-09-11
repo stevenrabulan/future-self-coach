@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Future Self Coach</title>
+    <!--
+      No-flash theme script (ticket 08): runs synchronously, before any CSS
+      paints, so an explicit dark/light choice from a prior visit applies
+      immediately. No stored choice means no attribute is set and the
+      prefers-color-scheme rule in tokens.css decides, with no flash either
+      way. Storage key duplicated from src/ui/theme.ts (THEME_STORAGE_KEY):
+      this must stay inline and dependency-free to run before the module
+      script loads.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('fsc-theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+        } catch (e) {
+          console.warn('theme: could not read stored theme before paint', e);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,0 +1,82 @@
+/*
+ * Design tokens (ticket 08, ADR 0004). Light values live on bare :root; dark
+ * under :root[data-theme="dark"]; the system default (no explicit choice yet)
+ * under a prefers-color-scheme query guarded by :not([data-theme="light"]) so
+ * an explicit light choice always wins over a dark system preference.
+ *
+ * --color-accent is the lifted text/border accent (violet in dark mode);
+ * --color-accent-fill is the fixed white-text-on-accent fill color, which
+ * does not lift, so accent buttons keep enough contrast in both themes.
+ */
+:root {
+  color-scheme: light;
+
+  --color-page: #fafaf9;
+  --color-surface: #ffffff;
+  --color-text: #0a0a0a;
+  --color-muted: #71717a;
+  --color-border: #e4e4e7;
+  --color-accent: #4b2de2;
+  --color-accent-fill: #4b2de2;
+  --color-on-accent: #ffffff;
+  --color-danger: #b3261e;
+  --color-danger-bg: #fdecea;
+  --color-danger-border: #f3b4ae;
+
+  --font-sans: 'Libre Franklin Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-17: 17px;
+  --text-20: 20px;
+  --text-32: 32px;
+  --leading-body: 1.6;
+  --tracking-heading-md: -0.02em;
+  --tracking-heading-lg: -0.03em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 999px;
+
+  --motion-duration: 160ms;
+  --motion-ease: ease-out;
+  --motion-pulse-duration: 2s;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-page: #0c0c0d;
+    --color-surface: #161617;
+    --color-text: #fafafa;
+    --color-muted: #a1a1aa;
+    --color-border: #27272a;
+    --color-accent: #7c5cff;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-page: #0c0c0d;
+  --color-surface: #161617;
+  --color-text: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-border: #27272a;
+  --color-accent: #7c5cff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0ms;
+  }
+}
