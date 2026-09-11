@@ -1,6 +1,7 @@
 # Secrets and personal data — never commit
 .env
 .env.*
+!.env.example
 *.local
 
 # Real Goal Log (personal goals); the committed sample is sample-goals.md
