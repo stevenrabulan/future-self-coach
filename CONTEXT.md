@@ -79,3 +79,10 @@ _Avoid_: "memory", "history", "notes"
 The model behind the coach's responses (a GLM-class model hosted on OpenRouter),
 plugged into ElevenLabs' custom-LLM slot.
 _Avoid_: "the AI", "GPT", "the model"
+
+**Check-in Phase**:
+The named stage of the Coaching Flow a Check-in is currently in. Seven exist
+internally (Recall, Framing, Toward, Away, Action, Enrollment, Complete); only
+the three spine steps (**Toward → Away → Action**) are shown to the user, with
+Recall and Framing carried as a lead-in label and Enrollment folded into Action.
+_Avoid_: "step" (collides with the Action Step), "stage", "state"
