@@ -73,7 +73,9 @@ you to your commitments over time.
 
 - **Instant Voice Cloning (IVC)**: the coach's voice is a clone of the user's
   own voice, created from a short clean recording. IVC requires a paid plan
-  (Starter or above; the Free plan cannot clone).
+  (Starter or above; the Free plan cannot clone). After cloning, remix the
+  voice in ElevenLabs with the prompt "age this voice 10 years older" so the
+  coach sounds like your future self, not your present one.
 - **Flash v2.5 TTS** (`eleven_flash_v2_5`): the coach's spoken replies,
   chosen for conversational latency (~75ms to first chunk). The model is
   overridable via env var.
