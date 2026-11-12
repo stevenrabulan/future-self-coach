@@ -111,3 +111,7 @@ Log, relay calls) does not change.
 
 - Not confirmed in the prototype: phone width, the live flow end to end, measured contrast for muted text on the glass panel in light theme. Each is an acceptance item in the tickets.
 - Design references the prototype was built from (structure only): [ElevenLabs](https://mobbin.com/screens/0d07b01d-2ece-4b97-960f-ec0aad96ad69), [Mindtrip](https://mobbin.com/screens/2a51b384-1642-4e16-959d-cdfc74b09455), [Delphi](https://mobbin.com/screens/99e9fbbc-9af0-4b2c-967e-01b9df3fb4ea).
+
+## Comments
+
+2026-11-12: Prototype preserved on local branch `prototype/app-redesign-variants` (commit c2be511, contains `src/ui/prototype/` variants A, B, C, switcher and fixtures). Removed from the main line in ticket 04.
