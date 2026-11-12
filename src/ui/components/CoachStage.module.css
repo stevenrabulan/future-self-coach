@@ -1,0 +1,116 @@
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.top {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 68px;
+  padding: var(--space-4) 64px;
+}
+
+.stepper {
+  min-width: 0;
+}
+
+.menu {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-5);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  padding: var(--space-4) var(--space-10) 56px;
+}
+
+.caption {
+  margin: 0;
+  max-width: 680px;
+  text-align: center;
+  font-size: clamp(22px, 2vw, 28px);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+  text-wrap: balance;
+  color: color-mix(in srgb, var(--color-text) 88%, var(--color-page));
+  animation: rise 400ms ease-out;
+}
+
+.caption[data-speaking] {
+  color: var(--color-text);
+}
+
+.controls {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(16px);
+}
+
+.ctrl {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--radius-full);
+  color: var(--color-muted);
+  transition: background var(--motion-duration), color var(--motion-duration);
+}
+
+.ctrl:hover {
+  color: var(--color-text);
+  background: var(--color-bubble);
+}
+
+.ctrl[aria-pressed='true'] {
+  color: var(--color-accent);
+  background: var(--color-bubble);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 860px) {
+  .top {
+    padding: var(--space-3) 56px var(--space-3) var(--space-3);
+  }
+
+  .menu {
+    top: var(--space-2);
+    right: var(--space-2);
+  }
+
+  .body {
+    overflow: visible;
+    gap: var(--space-5);
+    padding: var(--space-3) var(--space-5) var(--space-6);
+  }
+
+  .caption {
+    font-size: var(--text-20);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption {
+    animation: none;
+  }
+}

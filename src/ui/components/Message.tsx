@@ -1,11 +1,12 @@
 /**
- * One transcript line (ticket 08). Role is carried by position and
- * treatment (coach flows left as plain text; the client's own words sit in a
- * right-aligned bubble), not a "who" label column. The replay control is a
- * ghost button revealed on hover; the speaking pulse plays while this
- * message's audio is the one on the shared audio element.
+ * One transcript line (ticket 08, restyled in ticket 03). Role is carried by
+ * position and treatment (the coach flows left as plain text with a marker
+ * while it is being spoken; the client's own words sit in a right-aligned
+ * tinted bubble), not a "who" label. Replay is shown on coach lines that
+ * have audio.
  */
 import type React from 'react';
+import { PlayIcon } from './icons.js';
 import styles from './Message.module.css';
 
 export interface MessageProps {
@@ -29,7 +30,7 @@ export default function Message({ role, text, audioUrl, speaking, onReplay }: Me
       </div>
       {role === 'coach' && audioUrl != null && (
         <button type="button" className={styles.replay} aria-label="Replay this reply" onClick={onReplay}>
-          ▶
+          <PlayIcon />
         </button>
       )}
     </div>

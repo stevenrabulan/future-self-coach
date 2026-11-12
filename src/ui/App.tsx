@@ -5,7 +5,7 @@
  * Keys stay server-side: the UI never touches OpenRouter directly.
  *
  * The screen is one of three frames: StartGate (before the Check-in
- * starts), the main shell (stepper + transcript + composer), or SummaryCard
+ * starts), the main shell (coach stage + transcript panel), or SummaryCard
  * (once the Check-in closes). Component split and state ownership per ADR
  * 0004: state stays here, children are presentational.
  */
@@ -15,12 +15,15 @@ import { createCoach } from '../core/coach.js';
 import type { CoachReply, FlowPhase, GoalLog } from '../core/types.js';
 import { recordFromState } from '../log/goal-log.js';
 import styles from './App.module.css';
+import CoachStage from './components/CoachStage.js';
 import Composer from './components/Composer.js';
+import { orbStateFor } from './components/orb-state.js';
 import PhaseStepper from './components/PhaseStepper.js';
 import StartGate from './components/StartGate.js';
 import StatusMenu from './components/StatusMenu.js';
 import SummaryCard from './components/SummaryCard.js';
 import Transcript, { type ChatLine } from './components/Transcript.js';
+import { latestCoachLine } from './components/transcript-lines.js';
 import {
   fetchGoalLog,
   fetchHealth,
@@ -305,51 +308,43 @@ export default function App(): React.JSX.Element {
     );
   }
 
+  const latest = latestCoachLine(lines);
   return (
-    <main className={styles.app}>
-      <header className={styles.header}>
-        <h1 className={styles.wordmark}>Future Self Coach</h1>
-        <StatusMenu
-          health={health}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onRestart={restart}
-          restartDisabled={busy}
-        />
-      </header>
-
-      <div className={styles.stepperRow}>
-        <PhaseStepper phase={phase} />
-      </div>
-
-      <Transcript lines={lines} busy={busy} speakingId={speakingId} onReplay={replay} />
-
-      {error != null && (
-        <div className={styles.error} role="alert">
-          {error}
-        </div>
-      )}
-
-      <div className={styles.footer}>
+    <main className={styles.checkin}>
+      <CoachStage
+        orbState={orbStateFor(busy, speakingId)}
+        latest={latest}
+        speaking={latest != null && latest.id === speakingId}
+        voiceOn={health?.voice === 'on'}
+        muted={muted}
+        onToggleMute={toggleMute}
+        onReplay={replay}
+        stepper={<PhaseStepper phase={phase} />}
+        menu={
+          <StatusMenu
+            health={health}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onRestart={restart}
+            restartDisabled={busy}
+          />
+        }
+      />
+      <aside className={styles.panel} aria-label="Conversation">
+        <Transcript lines={lines} busy={busy} speakingId={speakingId} onReplay={replay} />
+        {error != null && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
         <Composer
           draft={draft}
           onDraftChange={setDraft}
           onSubmit={() => void send()}
           disabled={busy || (proto.frame === 'live' && coachRef.current == null)}
-          placeholder="Type your answer…"
-          voiceOn={health?.voice === 'on'}
-          muted={muted}
-          onToggleMute={() => {
-            setMuted((m) => {
-              if (!m) {
-                audioRef.current?.pause();
-                setSpeakingId(null); // pause() does not fire onended
-              }
-              return !m;
-            });
-          }}
+          placeholder="Type your reply"
         />
-      </div>
+      </aside>
     </main>
   );
   }

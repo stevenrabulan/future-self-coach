@@ -1,5 +1,5 @@
 /**
- * The three-step spine (ticket 08): Toward → Away → Action. Recall and
+ * The three-step spine (ticket 08, restyled in ticket 03): Toward, Away, Action as pill steps. Recall and
  * Framing render as a lead-in label rather than dots; Enrollment folds into
  * the Action step. Matches the Check-in Phase term in CONTEXT.md: seven
  * phases exist internally, only the three spine steps are user-facing.
@@ -40,8 +40,9 @@ export default function PhaseStepper({ phase }: PhaseStepperProps): React.JSX.El
           key={stepPhase}
           className={styles.step}
           data-state={i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'pending'}
+          aria-current={i === activeIndex ? 'step' : undefined}
         >
-          <span className={styles.dot} />
+          <span className={styles.dot} aria-hidden="true" />
           <span className={styles.label}>{PHASE_LABEL[stepPhase]}</span>
         </li>
       ))}
