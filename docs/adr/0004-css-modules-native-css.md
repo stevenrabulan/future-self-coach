@@ -2,6 +2,9 @@
 
 Status: accepted (2026-09-10)
 
+Note (2026-11-12): the design-language choices below (Libre Franklin, the
+neutral palette) are superseded by ADR 0005. The styling decision stands.
+
 Context: the one-screen chat UI is being redesigned from its dark developer
 theme to a light, typographic design (references: OpenAI's chat column, Stripe's
 chrome discipline, Apple's whitespace on the opening and closing frames). The
