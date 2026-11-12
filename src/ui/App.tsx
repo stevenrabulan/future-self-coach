@@ -281,12 +281,27 @@ export default function App(): React.JSX.Element {
   const finalActionStep = view.actionStep;
   const logStatus = view.logStatus;
   if (phase == null) {
-    return <StartGate onBegin={() => void begin()} busy={busy} error={error} />;
+    return (
+      <StartGate
+        onBegin={() => void begin()}
+        busy={busy}
+        error={error}
+        menu={
+          <StatusMenu health={health} theme={theme} onToggleTheme={toggleTheme} onRestart={restart} showRestart={false} />
+        }
+      />
+    );
   }
 
   if (phase === 'CLOSED') {
     return (
-      <SummaryCard actionStep={finalActionStep} logStatus={logStatus} error={error} onRestart={restart} />
+      <SummaryCard
+        actionStep={finalActionStep}
+        logStatus={logStatus}
+        error={error}
+        onRestart={restart}
+        menu={<StatusMenu health={health} theme={theme} onToggleTheme={toggleTheme} onRestart={restart} />}
+      />
     );
   }
 
