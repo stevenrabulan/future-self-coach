@@ -5,25 +5,45 @@
  * an explicit light choice always wins over a dark system preference.
  *
  * --color-accent is the lifted text/border accent (violet in dark mode);
- * --color-accent-fill is the fixed white-text-on-accent fill color, which
- * does not lift, so accent buttons keep enough contrast in both themes.
+ * --color-accent-fill is the white-text-on-accent fill color; it stays a
+ * deep violet in dark mode so accent buttons keep enough contrast.
  */
 :root {
   color-scheme: light;
 
-  --color-page: #fafaf9;
-  --color-surface: #ffffff;
-  --color-text: #0a0a0a;
-  --color-muted: #71717a;
-  --color-border: #e4e4e7;
+  --color-page: #f6f5fb;
+  --color-surface: rgba(255, 255, 255, 0.7);
+  --color-text: #17152b;
+  --color-muted: #5b5877;
+  --color-border: rgba(40, 30, 110, 0.14);
   --color-accent: #4b2de2;
   --color-accent-fill: #4b2de2;
   --color-on-accent: #ffffff;
+  --color-focus: #4b2de2;
   --color-danger: #b3261e;
   --color-danger-bg: #fdecea;
   --color-danger-border: #f3b4ae;
 
-  --font-sans: 'Libre Franklin Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Voice stage (ADR 0005): glass panel, popover, tinted bubble. */
+  --color-panel: rgba(255, 255, 255, 0.62);
+  --color-pop: #ffffff;
+  --color-bubble: rgba(75, 45, 226, 0.09);
+
+  /* Ambient page background: three soft radial washes. */
+  --color-ambient-1: rgba(124, 92, 255, 0.2);
+  --color-ambient-2: rgba(255, 185, 154, 0.28);
+  --color-ambient-3: rgba(47, 196, 240, 0.16);
+
+  /* Coach Orb colours (used by later tickets). */
+  --color-orb-a: #7c5cff;
+  --color-orb-b: #4b2de2;
+  --color-orb-c: #2fc4f0;
+  --color-orb-d: #ffb99a;
+  --color-orb-ring: rgba(75, 45, 226, 0.45);
+  --color-orb-core-glow: rgba(124, 92, 255, 0.4);
+  --orb-glow-opacity: 0.4;
+
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --text-13: 13px;
   --text-14: 14px;
   --text-15: 15px;
@@ -56,23 +76,51 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --color-page: #0c0c0d;
-    --color-surface: #161617;
-    --color-text: #fafafa;
-    --color-muted: #a1a1aa;
-    --color-border: #27272a;
-    --color-accent: #7c5cff;
+    --color-page: #06051a;
+    --color-surface: rgba(30, 26, 72, 0.6);
+    --color-text: #ecebfb;
+    --color-muted: #a3a0c6;
+    --color-border: rgba(180, 170, 255, 0.14);
+    --color-accent: #a994ff;
+    --color-accent-fill: #6a48f5;
+    --color-focus: #b9a8ff;
+    --color-danger: #ff9b92;
+    --color-danger-bg: rgba(255, 155, 146, 0.12);
+    --color-danger-border: rgba(255, 155, 146, 0.35);
+    --color-panel: rgba(18, 16, 48, 0.55);
+    --color-pop: #12102e;
+    --color-bubble: rgba(124, 92, 255, 0.22);
+    --color-ambient-1: rgba(90, 60, 255, 0.32);
+    --color-ambient-2: rgba(255, 150, 120, 0.1);
+    --color-ambient-3: rgba(40, 180, 240, 0.14);
+    --color-orb-ring: rgba(170, 150, 255, 0.6);
+    --color-orb-core-glow: rgba(124, 92, 255, 0.65);
+    --orb-glow-opacity: 0.55;
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --color-page: #0c0c0d;
-  --color-surface: #161617;
-  --color-text: #fafafa;
-  --color-muted: #a1a1aa;
-  --color-border: #27272a;
-  --color-accent: #7c5cff;
+  --color-page: #06051a;
+  --color-surface: rgba(30, 26, 72, 0.6);
+  --color-text: #ecebfb;
+  --color-muted: #a3a0c6;
+  --color-border: rgba(180, 170, 255, 0.14);
+  --color-accent: #a994ff;
+  --color-accent-fill: #6a48f5;
+  --color-focus: #b9a8ff;
+  --color-danger: #ff9b92;
+  --color-danger-bg: rgba(255, 155, 146, 0.12);
+  --color-danger-border: rgba(255, 155, 146, 0.35);
+  --color-panel: rgba(18, 16, 48, 0.55);
+  --color-pop: #12102e;
+  --color-bubble: rgba(124, 92, 255, 0.22);
+  --color-ambient-1: rgba(90, 60, 255, 0.32);
+  --color-ambient-2: rgba(255, 150, 120, 0.1);
+  --color-ambient-3: rgba(40, 180, 240, 0.14);
+  --color-orb-ring: rgba(170, 150, 255, 0.6);
+  --color-orb-core-glow: rgba(124, 92, 255, 0.65);
+  --orb-glow-opacity: 0.55;
 }
 
 @media (prefers-reduced-motion: reduce) {
