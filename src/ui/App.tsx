@@ -30,6 +30,26 @@ import {
   type Health,
 } from './relay-client.js';
 import { currentTheme, setStoredTheme, type Theme } from './theme.js';
+// PROTOTYPE (throwaway): variant switcher, see src/ui/prototype/types.ts.
+import { fixtureFor } from './prototype/fixtures.js';
+import PrototypeSwitcher from './prototype/PrototypeSwitcher.js';
+import type { FrameKey, VariantKey, VariantProps } from './prototype/types.js';
+import VariantA from './prototype/VariantA/index.js';
+import VariantB from './prototype/VariantB/index.js';
+import VariantC from './prototype/VariantC/index.js';
+
+function readProto(): { variant: VariantKey; frame: FrameKey } {
+  const q = new URLSearchParams(window.location.search);
+  const v = q.get('variant');
+  const f = q.get('frame');
+  // `?theme=dark|light` forces a theme for this page view only (screenshots).
+  const t = q.get('theme');
+  if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  return {
+    variant: v === 'A' || v === 'B' || v === 'C' ? v : 'current',
+    frame: f === 'gate' || f === 'checkin' || f === 'summary' ? f : 'live',
+  };
+}
 
 /** Local timestamp in the Goal Log's "YYYY-MM-DD HH:mm" shape. */
 function localTimestamp(): string {
@@ -67,6 +87,16 @@ export default function App(): React.JSX.Element {
   const [muted, setMuted] = useState(false);
   const [speakingId, setSpeakingId] = useState<number | null>(null);
   const [theme, setTheme] = useState<Theme>(() => currentTheme());
+
+  const [proto, setProto] = useState(readProto);
+  function changeProto(variant: VariantKey, frame: FrameKey): void {
+    const q = new URLSearchParams();
+    if (variant !== 'current') q.set('variant', variant);
+    if (frame !== 'live') q.set('frame', frame);
+    const qs = q.toString();
+    window.history.replaceState(null, '', qs === '' ? window.location.pathname : `?${qs}`);
+    setProto({ variant, frame });
+  }
 
   const coachRef = useRef<import('../core/coach.js').Coach | null>(null);
   /** Single shared audio element: one reply speaks at a time. */
@@ -210,6 +240,46 @@ export default function App(): React.JSX.Element {
     window.location.reload();
   }
 
+  function toggleMute(): void {
+    setMuted((m) => {
+      if (!m) {
+        audioRef.current?.pause();
+        setSpeakingId(null); // pause() does not fire onended
+      }
+      return !m;
+    });
+  }
+
+  const live: VariantProps = {
+    phase,
+    lines,
+    draft,
+    onDraftChange: setDraft,
+    onSend: () => void send(),
+    onBegin: () => void begin(),
+    busy,
+    error,
+    health,
+    voiceOn: health?.voice === 'on',
+    muted,
+    onToggleMute: toggleMute,
+    speakingId,
+    onReplay: replay,
+    theme,
+    onToggleTheme: toggleTheme,
+    onRestart: restart,
+    actionStep: finalActionStep,
+    logStatus,
+  };
+  const view: VariantProps =
+    proto.frame === 'live'
+      ? live
+      : { ...live, ...fixtureFor(proto.frame), onSend: () => undefined, onBegin: () => undefined, onReplay: () => undefined };
+
+  function renderCurrent(): React.JSX.Element {
+  const { phase, lines, busy, error, health, speakingId } = view;
+  const finalActionStep = view.actionStep;
+  const logStatus = view.logStatus;
   if (phase == null) {
     return <StartGate onBegin={() => void begin()} busy={busy} error={error} />;
   }
@@ -250,7 +320,7 @@ export default function App(): React.JSX.Element {
           draft={draft}
           onDraftChange={setDraft}
           onSubmit={() => void send()}
-          disabled={busy || coachRef.current == null}
+          disabled={busy || (proto.frame === 'live' && coachRef.current == null)}
           placeholder="Type your answer…"
           voiceOn={health?.voice === 'on'}
           muted={muted}
@@ -266,5 +336,14 @@ export default function App(): React.JSX.Element {
         />
       </div>
     </main>
+  );
+  }
+
+  const Variant = proto.variant === 'A' ? VariantA : proto.variant === 'B' ? VariantB : proto.variant === 'C' ? VariantC : null;
+  return (
+    <>
+      {Variant == null ? renderCurrent() : <Variant {...view} />}
+      {import.meta.env.DEV && <PrototypeSwitcher variant={proto.variant} frame={proto.frame} onChange={changeProto} />}
+    </>
   );
 }
