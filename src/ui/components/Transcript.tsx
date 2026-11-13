@@ -34,11 +34,16 @@ export default function Transcript({ lines, busy, speakingId, onReplay }: Transc
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [lines, busy]);
 
+  const groups = groupByPhase(lines);
+  // A lone heading (Recall or Framing at the start) says nothing: headings
+  // appear once a second Check-in Phase has begun.
+  const showDividers = groups.filter((g) => g.phase != null).length > 1;
+
   return (
     <div className={styles.transcript} ref={scrollRef}>
-      {groupByPhase(lines).map((group, i) => (
+      {groups.map((group, i) => (
         <section key={`${i}-${group.phase ?? 'none'}`} className={styles.group}>
-          {group.phase != null && <h2 className={styles.divider}>{PHASE_LABEL[group.phase]}</h2>}
+          {showDividers && group.phase != null && <h2 className={styles.divider}>{PHASE_LABEL[group.phase]}</h2>}
           {group.lines.map((l) => (
             <Message
               key={l.id}

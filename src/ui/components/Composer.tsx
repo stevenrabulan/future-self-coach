@@ -1,6 +1,6 @@
 /**
- * The message input row (ticket 08, restyled in ticket 03): a single-line
- * input with an icon send button. Mute lives on the stage's voice controls,
+ * The message input row (ticket 08, restyled in ticket 03): a single-line,
+ * full-width input with the icon send button inside its right edge. Mute lives on the stage's voice controls,
  * not here. Disabled while the coach is thinking; send also needs a
  * non-empty draft.
  */

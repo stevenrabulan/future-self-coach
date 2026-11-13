@@ -11,8 +11,12 @@
 
 .coachText {
   max-width: 92%;
+  /* About one line of space below each coach line. A margin, so the
+     speaking marker does not stretch with it. */
+  margin-bottom: 1lh;
   padding: 2px 0 2px 10px;
   border-left: 2px solid transparent;
+  transition: border-left-color 600ms ease-in-out;
   white-space: pre-wrap;
   font-size: var(--text-15);
   line-height: 1.55;

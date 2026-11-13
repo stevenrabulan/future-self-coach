@@ -2,6 +2,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Contains the visually hidden labels inside each line. Without this they
+     are placed against the page and make the whole window scrollable. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
