@@ -15,3 +15,7 @@ Human steps: the user records the video (the Voice Clone is theirs, and sound ca
 - [ ] No personal data in any capture: sample goals only, no keys, no voice id, a faked or sample Goal Log
 - [ ] The README's existing text still matches the UI shown (no mention of the old chat screen)
 - [ ] The screen recording item in the demo feature's ticket 06 is ticked with a comment pointing here
+
+## Comments
+
+**2026-11-12:** sample copy for the Away line in every capture, picked by the user: "I know what that's like. Now the other side: what's the consequence if you don't achieve it?" Do not use "I remember that weight."

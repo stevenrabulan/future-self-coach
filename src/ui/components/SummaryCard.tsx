@@ -1,12 +1,15 @@
 /**
  * The closing frame (ticket 08, restyled in ticket 02): a small idle Coach
- * Orb mark, "Check-in complete", the Action Step with its agreed date and
- * time as the centre, the Goal Log line and "Start new Check-in".
+ * Orb mark, one line above the Action Step ("Check-in complete"), one line
+ * below it (the agreed date and time, with the Goal Log status on the same
+ * line) and "Start new Check-in".
  * Presentation only, built from coach.state()'s actionStep: no Brain change.
  */
 import type React from 'react';
 import type { ActionStep } from '../../core/types.js';
+import { formatDisplayDate } from '../display-date.js';
 import CoachOrb from './CoachOrb.js';
+import { BellIcon } from './icons.js';
 import styles from './SummaryCard.module.css';
 
 export interface SummaryCardProps {
@@ -27,18 +30,28 @@ export default function SummaryCard({ actionStep, logStatus, error, onRestart, m
       <CoachOrb state="idle" size="mark" />
       <p className={styles.eyebrow}>Check-in complete</p>
       {actionStep != null ? (
-        <section className={styles.hero} aria-labelledby="action-step-label">
-          <p id="action-step-label" className={styles.heroLabel}>
-            Your Action Step
-          </p>
+        <section className={styles.hero} aria-label="Your Action Step">
           <p className={styles.heroAction}>{actionStep.action}</p>
-          <p className={styles.heroWhen}>{actionStep.when}</p>
+          <p className={styles.heroWhen}>
+            <span className={styles.when}>
+              <BellIcon />
+              {formatDisplayDate(actionStep.when)}
+            </span>
+            {logStatus !== 'error' && (
+              <span className={styles.logNote}>
+                {logStatus === 'done' ? 'Saved to your Goal Log' : 'Saving to your Goal Log…'}
+              </span>
+            )}
+          </p>
         </section>
       ) : (
-        <p className={styles.heroNote}>No Action Step was captured this time.</p>
+        <>
+          <p className={styles.heroNote}>No Action Step was captured this time.</p>
+          {logStatus !== 'error' && (
+            <p className={styles.heroWhen}>{logStatus === 'done' ? 'Saved to your Goal Log' : 'Saving to your Goal Log…'}</p>
+          )}
+        </>
       )}
-      {logStatus === 'done' && <p className={styles.logLine}>Logged to your Goal Log.</p>}
-      {logStatus === 'pending' && <p className={styles.logLine}>Logging to your Goal Log…</p>}
       {logStatus === 'error' && (
         <p className={styles.logError} role="alert">
           Couldn't save to your Goal Log{error != null ? `: ${error}` : '.'}

@@ -44,3 +44,10 @@ export const SendIcon = (): React.JSX.Element => (
     <path d="M12 19V5M6 11l6-6 6 6" />
   </Icon>
 );
+
+export const BellIcon = (): React.JSX.Element => (
+  <Icon size={16}>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15l1.5-2z" />
+    <path d="M10 21a2.2 2.2 0 0 0 4 0" />
+  </Icon>
+);
