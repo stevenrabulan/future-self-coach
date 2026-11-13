@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-human
+**Status:** resolved
 
 **Spec:** `.scratch/voice-stage-redesign/spec.md` (Check-in layout, Phase stepper, Caption, Composer, Component set).
 
@@ -16,7 +16,7 @@
 - [x] Composer is disabled while busy; send is disabled on an empty draft; placeholder reads "Type your reply"
 - [x] Errors show in the panel above the composer
 - [x] Every control has a visible focus ring and is reachable by keyboard
-- [ ] Live pass: one full Check-in against the relay with voice on, orb seen in idle, thinking and speaking, Action Step logged
+- [x] Live pass: one full Check-in against the relay with voice on, orb seen in idle, thinking and speaking, Action Step logged
 - [x] Captures attached: light and dark at 1440x900, one at 390 wide, one with reduced motion
 - [x] Muted text on the glass panel meets AA contrast in both themes (measured, values in the comment)
 
@@ -61,3 +61,5 @@ Built and checked against fixture data; one box left (live pass), which needs th
 5. Step through Toward, Away, Action: stepper pills update, transcript grows a heading per phase.
 6. After the Action Step, the summary shows the step and time, and "Logged to your Goal Log." Open `goal-log` and check the new entry.
 7. If all good, tick the live pass box and set status to resolved.
+
+**2026-11-13:** live pass done by the user: a full Check-in with voice on, orb motion and state fades in a real browser, and reduced motion. Resolved.
