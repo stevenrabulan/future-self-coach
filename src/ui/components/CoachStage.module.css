@@ -1,0 +1,148 @@
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Laid over the top of the stage, not above it: the body below runs the
+   full height, so the orb's glow and ripples are never cut off at a header
+   edge. Sits above the orb so the open status menu is not covered. */
+.top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 68px;
+  padding: var(--space-4) 64px;
+}
+
+/* Page colour at the top fading to clear, so the stepper and menu stay
+   readable when the orb's glow or a scrolled caption passes underneath.
+   Dark in the dark theme, light in the light theme. */
+.top::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -32px;
+  z-index: -1;
+  background: linear-gradient(to bottom, var(--color-page) 0%, color-mix(in srgb, var(--color-page) 70%, transparent) 55%, transparent 100%);
+  pointer-events: none;
+}
+
+.stepper {
+  min-width: 0;
+}
+
+.menu {
+  /* Out of flow, so the stepper centres on the stage as if the menu were
+     not there; centred on the same horizontal line as the stepper. */
+  position: absolute;
+  top: 50%;
+  right: var(--space-5);
+  transform: translateY(-50%);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  /* Top padding: the header's height (68px) to clear it, plus the same
+     again so the orb's glow, which reaches past the orb's box, stays clear
+     of the stepper. */
+  padding: 136px var(--space-10) 56px;
+}
+
+.caption {
+  margin: 0;
+  /* One line shrink-wraps and so sits centred; a wrapped caption fills the
+     max width and reads left aligned. */
+  width: fit-content;
+  max-width: 680px;
+  text-align: left;
+  font-size: clamp(22px, 2vw, 28px);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  font-weight: 500;
+  text-wrap: pretty;
+  color: color-mix(in srgb, var(--color-text) 88%, var(--color-page));
+  transition: color 600ms ease-in-out;
+  animation: rise 400ms ease-out;
+}
+
+.caption[data-speaking] {
+  color: var(--color-text);
+}
+
+.controls {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(16px);
+}
+
+.ctrl {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--radius-full);
+  color: var(--color-muted);
+  transition: background var(--motion-duration), color var(--motion-duration);
+}
+
+.ctrl:hover {
+  color: var(--color-text);
+  background: var(--color-bubble);
+}
+
+.ctrl[aria-pressed='true'] {
+  color: var(--color-accent);
+  background: var(--color-bubble);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 860px) {
+  .top {
+    /* Equal on both sides, so the stepper stays centred beside the menu. */
+    padding: var(--space-3) 56px;
+  }
+
+  .menu {
+    right: var(--space-2);
+  }
+
+  .body {
+    overflow: visible;
+    gap: var(--space-5);
+    padding: 112px var(--space-5) var(--space-6);
+  }
+
+  .caption {
+    font-size: var(--text-20);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption {
+    animation: none;
+  }
+}

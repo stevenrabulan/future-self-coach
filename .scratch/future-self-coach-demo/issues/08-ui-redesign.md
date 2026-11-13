@@ -127,3 +127,5 @@ between two components.
 
 Screenshots (1280x720, both themes) sent to Steve for review per the Review
 section above.
+
+2026-11-12: The UI described here was superseded by the voice stage redesign. See docs/adr/0005-voice-stage-ui.md and .scratch/voice-stage-redesign/spec.md.

@@ -1,10 +1,12 @@
 /**
- * The message input row (ticket 08). Mute stays here, beside the composer,
- * rather than moving into the status menu: it is a control the client
- * reaches for mid-conversation, not a diagnostic.
+ * The message input row (ticket 08, restyled in ticket 03): a single-line,
+ * full-width input with the icon send button inside its right edge. Mute lives on the stage's voice controls,
+ * not here. Disabled while the coach is thinking; send also needs a
+ * non-empty draft.
  */
 import type React from 'react';
 import styles from './Composer.module.css';
+import { SendIcon } from './icons.js';
 
 export interface ComposerProps {
   draft: string;
@@ -12,9 +14,6 @@ export interface ComposerProps {
   onSubmit: () => void;
   disabled: boolean;
   placeholder: string;
-  voiceOn: boolean;
-  muted: boolean;
-  onToggleMute: () => void;
 }
 
 export default function Composer({
@@ -23,9 +22,6 @@ export default function Composer({
   onSubmit,
   disabled,
   placeholder,
-  voiceOn,
-  muted,
-  onToggleMute,
 }: ComposerProps): React.JSX.Element {
   return (
     <form
@@ -35,17 +31,6 @@ export default function Composer({
         onSubmit();
       }}
     >
-      {voiceOn && (
-        <button
-          type="button"
-          className={styles.mute}
-          aria-pressed={muted}
-          aria-label={muted ? 'Unmute the coach' : 'Mute the coach'}
-          onClick={onToggleMute}
-        >
-          {muted ? '🔇' : '🔊'}
-        </button>
-      )}
       <input
         value={draft}
         onChange={(e) => onDraftChange(e.target.value)}
@@ -54,8 +39,8 @@ export default function Composer({
         aria-label="Message to the coach"
         className={styles.input}
       />
-      <button type="submit" className={styles.send} disabled={disabled || draft.trim() === ''}>
-        Send
+      <button type="submit" className={styles.send} aria-label="Send" disabled={disabled || draft.trim() === ''}>
+        <SendIcon />
       </button>
     </form>
   );

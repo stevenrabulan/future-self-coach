@@ -1,13 +1,13 @@
 /**
  * Browser entry point (ticket 04; restyled in ticket 08): mounts the
- * one-screen chat UI. Libre Franklin is self-hosted via
- * @fontsource-variable/libre-franklin (no fonts.gstatic.com round-trip); the
+ * one-screen chat UI. Geist Variable is self-hosted via
+ * @fontsource-variable/geist (no fonts.gstatic.com round-trip); the
  * Latin subset file is preloaded so the swap-in is fast.
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import latinFontUrl from '@fontsource-variable/libre-franklin/files/libre-franklin-latin-wght-normal.woff2?url';
-import '@fontsource-variable/libre-franklin/wght.css';
+import latinFontUrl from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
+import '@fontsource-variable/geist/wght.css';
 import './styles/reset.css';
 import './styles/tokens.css';
 import App from './App.js';

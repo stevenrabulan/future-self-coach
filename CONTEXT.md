@@ -80,6 +80,11 @@ The model behind the coach's responses (a GLM-class model hosted on OpenRouter),
 plugged into ElevenLabs' custom-LLM slot.
 _Avoid_: "the AI", "GPT", "the model"
 
+**Coach Orb**:
+The visual stand-in for the Future Self Coach on screen: a circular form that
+is idle, speaking or thinking. It is the coach's presence, not a control.
+_Avoid_: "ball", "avatar", "blob", "the animation"
+
 **Check-in Phase**:
 The named stage of the Coaching Flow a Check-in is currently in. Seven exist
 internally (Recall, Framing, Toward, Away, Action, Enrollment, Complete); only

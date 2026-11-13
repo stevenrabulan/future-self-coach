@@ -1,0 +1,243 @@
+/* State changes are smooth because nothing is switched on or off. Four
+   waves run all the time (registered numbers, so they can animate), and each
+   state only sets how strongly they show: --orb-breathe (idle),
+   --orb-pulse (speaking), --orb-busy (thinking). Those three transition. */
+@property --orb-slow { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --orb-fast { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --orb-ma { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --orb-mb { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --orb-breathe { syntax: '<number>'; inherits: true; initial-value: 1; }
+@property --orb-pulse { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --orb-busy { syntax: '<number>'; inherits: true; initial-value: 0; }
+
+.orb {
+  --orb-size: 280px;
+  --orb-breathe: 1;
+  --orb-pulse: 0;
+  --orb-busy: 0;
+  transition: --orb-breathe 900ms ease-in-out, --orb-pulse 900ms ease-in-out, --orb-busy 600ms ease-in-out;
+  animation:
+    slowWave 21s ease-in-out infinite,
+    fastWave 3.3s ease-in-out infinite,
+    morphA 15s ease-in-out infinite,
+    morphB 11s ease-in-out infinite;
+  position: relative;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.orb[data-size='gate'] { --orb-size: 240px; }
+.orb[data-size='mark'] { --orb-size: 60px; }
+@media (max-width: 860px) {
+  .orb[data-size='stage'] { --orb-size: 176px; }
+  .orb[data-size='gate'] { --orb-size: 208px; }
+}
+
+.orb[data-state='speaking'] { --orb-breathe: 0; --orb-pulse: 1; }
+.orb[data-state='thinking'] { --orb-breathe: 0; --orb-busy: 1; }
+
+.glow {
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--color-orb-a), var(--color-orb-b), var(--color-orb-c), var(--color-orb-d), var(--color-orb-a));
+  /* No blur: the halo fades smoothly from the ball's edge (core radius is ~54% of this box) to nothing at its rim. */
+  -webkit-mask-image: radial-gradient(closest-side, #000 50%, rgba(0, 0, 0, 0.6) 62%, rgba(0, 0, 0, 0.3) 75%, rgba(0, 0, 0, 0.09) 89%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 50%, rgba(0, 0, 0, 0.6) 62%, rgba(0, 0, 0, 0.3) 75%, rgba(0, 0, 0, 0.09) 89%, transparent 100%);
+  opacity: calc(var(--orb-glow-opacity) + 0.2 * var(--orb-pulse) + 0.3 * var(--orb-busy));
+  /* Idle: 0.97 to 1.04 over 21s. Speaking: 0.98 to 1.12 over 3.3s. */
+  transform: scale(calc(0.97 + 0.07 * var(--orb-slow) * var(--orb-breathe) + (0.01 + 0.14 * var(--orb-fast)) * var(--orb-pulse) + 0.08 * var(--orb-busy)));
+  animation: turn 40s linear infinite;
+}
+
+/* Fades in as a group when the coach speaks. The rings never stop. */
+.rings {
+  position: absolute;
+  inset: 0;
+  opacity: var(--orb-pulse);
+}
+.ring {
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  border: 1px solid var(--color-orb-ring);
+  opacity: 0;
+}
+/* Four rings, so at most four ripples show at once. Each travels for about
+   8s, then rests; the cycle lengths differ and share no common beat, so the
+   gaps between ripples keep changing instead of ticking evenly. */
+.ring:nth-child(1) { animation: rippleA 9.5s ease-out -2s infinite; }
+.ring:nth-child(2) { animation: rippleB 11.7s ease-out -7.4s infinite; }
+.ring:nth-child(3) { animation: rippleC 13.3s ease-out -4.1s infinite; }
+.ring:nth-child(4) { animation: rippleD 15.9s ease-out -11s infinite; }
+
+.core {
+  --morph-a: calc(var(--orb-ma) * var(--orb-pulse) * 6%);
+  --morph-b: calc(var(--orb-mb) * var(--orb-pulse) * 5%);
+  position: relative;
+  width: 78%;
+  height: 78%;
+  border-radius:
+    calc(50% + var(--morph-a)) calc(50% - var(--morph-a)) calc(50% + var(--morph-b)) calc(50% - var(--morph-b)) /
+    calc(50% - var(--morph-b)) calc(50% + var(--morph-a)) calc(50% - var(--morph-a)) calc(50% + var(--morph-b));
+  overflow: hidden;
+  background: var(--color-orb-b);
+  box-shadow: inset 0 0 calc(var(--orb-size) * 0.12) rgba(255, 255, 255, 0.22);
+  /* Idle: 0.97 to 1.04 over 21s. Speaking: 0.98 to 1.07 over 3.3s. Thinking: still. */
+  transform: scale(calc(0.97 + 0.07 * var(--orb-slow) * var(--orb-breathe) + (0.01 + 0.09 * var(--orb-fast)) * var(--orb-pulse)));
+  /* Thinking: brighter and a little more saturated. */
+  filter: saturate(calc(1 + 0.2 * var(--orb-busy))) brightness(calc(1 + 0.14 * var(--orb-busy)));
+}
+
+.swirl {
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from 0deg, var(--color-orb-a), var(--color-orb-b), var(--color-orb-c), var(--color-orb-d), var(--color-orb-a));
+  filter: blur(calc(var(--orb-size) * 0.05));
+  animation: spin 22s linear infinite;
+}
+
+/* The colours inside the orb: soft blobs that each wander on their own path.
+   The path lengths share no common beat, so the mix never visibly repeats. */
+.blob {
+  position: absolute;
+  width: 85%;
+  height: 85%;
+  border-radius: 50%;
+  filter: blur(calc(var(--orb-size) * 0.06));
+}
+.core > .blob:nth-of-type(2) { top: -20%; left: -25%; background: radial-gradient(closest-side, var(--color-orb-d), transparent); animation: driftA 17s ease-in-out infinite; }
+.core > .blob:nth-of-type(3) { top: 35%; left: 40%; background: radial-gradient(closest-side, var(--color-orb-c), transparent); animation: driftB 23s ease-in-out infinite; }
+.core > .blob:nth-of-type(4) { top: -15%; left: 40%; background: radial-gradient(closest-side, var(--color-orb-a), transparent); animation: driftC 29s ease-in-out infinite; }
+.core > .blob:nth-of-type(5) { top: 40%; left: -25%; background: radial-gradient(closest-side, var(--color-orb-b), transparent); animation: driftD 13s ease-in-out infinite; }
+
+/* Quicker blobs laid over the slow ones. They fade in while the coach speaks
+   or thinks, so the inside livens up without the colours jumping. */
+.lively {
+  position: absolute;
+  inset: 0;
+  opacity: max(calc(var(--orb-pulse) * 0.7), var(--orb-busy));
+}
+.lively > .blob { width: 70%; height: 70%; }
+.lively > .blob:nth-child(1) { top: 0; left: -10%; background: radial-gradient(closest-side, var(--color-orb-c), transparent); animation: driftC 5.3s ease-in-out infinite; }
+.lively > .blob:nth-child(2) { top: 30%; left: 40%; background: radial-gradient(closest-side, var(--color-orb-d), transparent); animation: driftA 4.1s ease-in-out infinite; }
+.lively > .blob:nth-child(3) { top: 40%; left: 5%; background: radial-gradient(closest-side, var(--color-orb-a), transparent); animation: driftB 6.7s ease-in-out infinite; }
+
+.sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 50% 118%, rgba(255, 190, 160, 0.55), transparent 55%);
+}
+
+/* Thinking: three small lights orbit the orb at different distances. Each
+   has a steady turn (rotate) plus a back-and-forth swing (transform), so it
+   eases between slow and fast. Always orbiting; fades in while thinking. */
+.motes {
+  position: absolute;
+  inset: 0;
+  opacity: var(--orb-busy);
+}
+.orbit {
+  --mote: calc(var(--orb-size) * 0.022);
+  position: absolute;
+  border-radius: 50%;
+}
+.orbit::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--mote) / -2);
+  left: calc(50% - var(--mote) / 2);
+  width: var(--mote);
+  height: var(--mote);
+  border-radius: 50%;
+  background: var(--color-orb-d);
+  box-shadow: 0 0 calc(var(--mote) * 1.6) calc(var(--mote) * 0.35) var(--color-orb-c);
+}
+.orbit:nth-child(1) { inset: 5%; animation: turn 2.3s linear infinite, swing 2.9s ease-in-out infinite alternate; }
+.orbit:nth-child(2) { --mote: calc(var(--orb-size) * 0.015); inset: -3%; animation: turn 3.7s linear infinite reverse, swing 4.3s ease-in-out infinite alternate; }
+.orbit:nth-child(2)::after { background: var(--color-orb-c); }
+.orbit:nth-child(3) { --mote: calc(var(--orb-size) * 0.011); inset: -12%; animation: turn 5.9s linear infinite, swing 3.1s ease-in-out infinite alternate; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes turn { to { rotate: 360deg; } }
+@keyframes swing {
+  from { transform: rotate(-70deg); }
+  to { transform: rotate(70deg); }
+}
+@keyframes driftA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  30% { transform: translate(55%, 20%) scale(1.25); }
+  62% { transform: translate(20%, 65%) scale(0.85); }
+  81% { transform: translate(-10%, 30%) scale(1.1); }
+}
+@keyframes driftB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  24% { transform: translate(-60%, -15%) scale(0.9); }
+  55% { transform: translate(-25%, -65%) scale(1.3); }
+  78% { transform: translate(15%, -30%) scale(1); }
+}
+@keyframes driftC {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  35% { transform: translate(-45%, 50%) scale(0.85); }
+  58% { transform: translate(-70%, 10%) scale(1.2); }
+  84% { transform: translate(-20%, -10%) scale(0.95); }
+}
+@keyframes driftD {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  28% { transform: translate(40%, -55%) scale(1.2); }
+  60% { transform: translate(70%, -10%) scale(0.9); }
+  80% { transform: translate(25%, 15%) scale(1.15); }
+}
+@keyframes slowWave {
+  0%, 100% { --orb-slow: 0; }
+  50% { --orb-slow: 1; }
+}
+@keyframes fastWave {
+  0%, 100% { --orb-fast: 0; }
+  50% { --orb-fast: 1; }
+}
+@keyframes morphA {
+  0%, 100% { --orb-ma: -1; }
+  50% { --orb-ma: 1; }
+}
+@keyframes morphB {
+  0%, 100% { --orb-mb: 1; }
+  50% { --orb-mb: -1; }
+}
+@keyframes rippleA {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  84%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes rippleB {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  68%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes rippleC {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  60%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes rippleD {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  50%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Reduced motion: nothing moves. States still read by fixed shapes, and
+   still cross-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .orb, .orb * { animation: none !important; }
+  .orb[data-state='speaking'] .core { border-radius: 50% 46% 54% 48% / 48% 54% 46% 52%; }
+  .orbit:nth-child(1) { rotate: 40deg; }
+  .orbit:nth-child(2) { rotate: 170deg; }
+  .orbit:nth-child(3) { rotate: 280deg; }
+  .ring:nth-child(1) { opacity: 0.55; }
+  .ring:nth-child(2) { transform: scale(1.18); opacity: 0.35; }
+  .ring:nth-child(3) { transform: scale(1.36); opacity: 0.18; }
+  .orb[data-state='speaking'] .glow { transform: scale(1.1); }
+  .orb[data-state='idle'] .core { filter: saturate(0.8); }
+  .orb[data-state='idle'] .glow { opacity: calc(var(--orb-glow-opacity) * 0.7); }
+}

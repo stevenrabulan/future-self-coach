@@ -1,97 +1,59 @@
-.coachRow {
+.coachRow,
+.userRow {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: 4px;
+}
+
+.userRow {
+  justify-content: flex-end;
 }
 
 .coachText {
+  max-width: 92%;
+  /* About one line of space below each coach line. A margin, so the
+     speaking marker does not stretch with it. */
+  margin-bottom: 1lh;
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid transparent;
+  transition: border-left-color 600ms ease-in-out;
   white-space: pre-wrap;
   font-size: var(--text-15);
-  line-height: var(--leading-body);
-  animation: enter var(--motion-duration) var(--motion-ease);
+  line-height: 1.55;
 }
 
 .coachText[data-speaking] {
-  animation: pulse var(--motion-pulse-duration) ease-in-out infinite;
+  border-left-color: var(--color-orb-a);
+}
+
+.userBubble {
+  max-width: 85%;
+  padding: var(--space-2) 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--color-bubble);
+  white-space: pre-wrap;
+  font-size: var(--text-15);
 }
 
 .replay {
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  margin-top: 2px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  color: var(--color-accent);
-  font-size: 10px;
-  display: grid;
+  display: inline-grid;
   place-items: center;
-  opacity: 0;
-  transition: opacity var(--motion-duration) var(--motion-ease);
-}
-
-.coachRow:hover .replay,
-.coachRow:focus-within .replay {
-  opacity: 1;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-full);
+  color: var(--color-muted);
+  transition: background var(--motion-duration), color var(--motion-duration);
 }
 
 .replay:hover {
-  background: var(--color-accent-fill);
-  color: var(--color-on-accent);
-  border-color: var(--color-accent-fill);
-}
-
-.userRow {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.userBubble {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
-  max-width: 80%;
-  white-space: pre-wrap;
-  font-size: var(--text-15);
-  animation: enter var(--motion-duration) var(--motion-ease);
+  color: var(--color-text);
+  background: var(--color-bubble);
 }
 
 .system {
+  margin: 0;
   text-align: center;
   color: var(--color-muted);
   font-size: var(--text-13);
-  margin: 0;
-}
-
-@keyframes enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .coachText,
-  .userBubble {
-    animation: none;
-  }
-
-  .coachText[data-speaking] {
-    animation: none;
-  }
 }

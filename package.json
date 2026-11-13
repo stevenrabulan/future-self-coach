@@ -28,6 +28,6 @@
     "fsevents@2.3.3": true
   },
   "dependencies": {
-    "@fontsource-variable/libre-franklin": "^5.3.0"
+    "@fontsource-variable/geist": "^5.3.0"
   }
 }
