@@ -14,6 +14,16 @@ coaching program, which taught it), and drives every Check-in to a commitment:
 one Action Step, with an agreed date and time, enrolled and sold, not just
 described.
 
+## Screenshots
+
+| Check-in, light | Check-in, dark |
+| --- | --- |
+| ![Check-in, light](.scratch/voice-stage-redesign/captures/pr-feedback/checkin-light.png) | ![Check-in, dark](.scratch/voice-stage-redesign/captures/pr-feedback/checkin-dark.png) |
+
+| Thinking, dark | Start gate, dark | Summary, light |
+| --- | --- | --- |
+| ![Thinking, dark](.scratch/voice-stage-redesign/captures/pr-feedback/checkin-thinking-dark.png) | ![Start gate, dark](.scratch/voice-stage-redesign/captures/pr-feedback/gate-dark-done.png) | ![Summary, light](.scratch/voice-stage-redesign/captures/pr-feedback/summary-light-done.png) |
+
 ## What a Check-in looks like
 
 1. **Framing Questions**: the coach asks permission up front (OK to ask
